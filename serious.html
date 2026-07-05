@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070B14">
+<title>Okay, Jokes Aside — The Real Message</title>
+
+<!-- Google Fonts: Poppins for body copy, JetBrains Mono for small status text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ---------- Design tokens ---------- */
+  :root{
+    --bg:#070B14;
+    --primary:#38BDF8;
+    --primary-dark:#0EA5E9;
+    --text:#F8FAFC;
+    --secondary:#94A3B8;
+    --glass:rgba(255,255,255,0.07);
+    --glass-border:rgba(56,189,248,0.25);
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(circle at 50% -10%, #0c1830 0%, var(--bg) 55%);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .mono{
+    font-family:'JetBrains Mono', monospace;
+    letter-spacing:0.02em;
+  }
+
+  /* ---------- Ambient background: drifting light blobs + slow particles ---------- */
+  .bg-layer{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    overflow:hidden;
+    pointer-events:none;
+  }
+
+  .blob{
+    position:absolute;
+    border-radius:50%;
+    filter:blur(70px);
+    will-change:transform;
+  }
+  .blob1{ width:320px; height:320px; background:var(--primary); opacity:0.16; top:-90px; left:-90px; animation:driftA 26s ease-in-out infinite; }
+  .blob2{ width:280px; height:280px; background:var(--primary-dark); opacity:0.14; bottom:-110px; right:-70px; animation:driftB 30s ease-in-out infinite; }
+
+  @keyframes driftA{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(40px,60px); } }
+  @keyframes driftB{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-30px,-40px); } }
+
+  .particle{
+    position:absolute;
+    bottom:-10px;
+    border-radius:50%;
+    background:radial-gradient(circle, #7dd3fc 0%, rgba(56,189,248,0) 70%);
+    animation-name:floatUp;
+    animation-timing-function:linear;
+    animation-iteration-count:infinite;
+  }
+  @keyframes floatUp{
+    0%   { transform:translateY(0) scale(1); opacity:0; }
+    10%  { opacity:var(--o, 0.4); }
+    90%  { opacity:var(--o, 0.4); }
+    100% { transform:translateY(-110vh) scale(0.6); opacity:0; }
+  }
+
+  /* ---------- Layout ---------- */
+  .page{
+    position:relative;
+    z-index:2;
+    display:flex;
+    justify-content:center;
+    padding:60px 0 90px;
+  }
+
+  .card{
+    width:90%;
+    max-width:430px;
+    background:var(--glass);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border);
+    border-radius:25px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:26px 22px 24px;
+    animation:cardIn 1s ease-out;
+  }
+  @keyframes cardIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+
+  .card-header{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding-bottom:16px;
+    margin-bottom:16px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+
+  .status-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--primary);
+    box-shadow:0 0 8px var(--primary);
+    animation:pulseDot 2.4s ease-in-out infinite;
+    flex-shrink:0;
+  }
+  @keyframes pulseDot{ 0%,100%{ opacity:0.5; transform:scale(0.85); } 50%{ opacity:1; transform:scale(1.1); } }
+
+  .signature{
+    font-weight:600;
+    color:var(--text);
+    cursor:pointer;
+    position:relative;
+  }
+  .signature:hover{ color:var(--primary); }
+
+  .header-sub{
+    color:var(--secondary);
+    font-size:0.72rem;
+  }
+
+  /* ---------- Message feed ---------- */
+  .feed{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    min-height:40px;
+  }
+
+  .bubble{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .line{
+    margin:0;
+    line-height:1.65;
+    font-size:0.98rem;
+    font-weight:400;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity 0.6s ease, transform 0.6s ease;
+  }
+  .line.show{ opacity:1; transform:translateY(0); }
+
+  .aside{
+    margin:2px 0 0;
+    color:var(--secondary);
+    font-size:0.78rem;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 0.6s ease, transform 0.6s ease;
+  }
+  .aside.show{ opacity:1; transform:translateY(0); }
+
+  /* Subtle heartbeat-style glow for the one line that matters most */
+  .glow{
+    color:var(--primary);
+    font-weight:500;
+    text-shadow:0 0 6px rgba(56,189,248,0.35);
+    animation:glowPulse 2.6s ease-in-out infinite;
+  }
+  @keyframes glowPulse{
+    0%,100%{ text-shadow:0 0 6px rgba(56,189,248,0.35); }
+    50%{ text-shadow:0 0 16px rgba(56,189,248,0.75); }
+  }
+
+  /* Clickable easter-egg word */
+  .hotword{
+    color:var(--primary);
+    cursor:pointer;
+    border-bottom:1px dashed rgba(56,189,248,0.4);
+  }
+
+  /* ---------- Typing intro ---------- */
+  .type-line{
+    margin:0 0 8px;
+    line-height:1.6;
+    font-size:1rem;
+    min-height:1.6em;
+  }
+  .type-line .cursor{
+    display:inline-block;
+    width:2px;
+    height:1em;
+    background:var(--primary);
+    margin-left:2px;
+    vertical-align:-2px;
+    animation:blink 0.9s step-end infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- Action area (continue buttons / final CTA) ---------- */
+  .action{
+    margin-top:20px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .btn{
+    font-family:'Poppins', sans-serif;
+    border:none;
+    cursor:pointer;
+    color:#04121F;
+    background:linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding:11px 22px;
+    border-radius:999px;
+    font-size:0.88rem;
+    font-weight:600;
+    letter-spacing:0.01em;
+    box-shadow:0 0 18px rgba(56,189,248,0.35);
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease, transform 0.15s ease;
+  }
+  .btn.show{ opacity:1; transform:translateY(0); }
+  .btn:hover{ box-shadow:0 0 26px rgba(56,189,248,0.55); }
+  .btn:active{ transform:scale(0.97); }
+
+  .btn.final{
+    padding:14px 28px;
+    font-size:0.95rem;
+    animation:finalGlow 2.8s ease-in-out infinite;
+  }
+  @keyframes finalGlow{
+    0%,100%{ box-shadow:0 0 18px rgba(56,189,248,0.35); }
+    50%{ box-shadow:0 0 30px rgba(56,189,248,0.65); }
+  }
+
+  /* ---------- Toast for easter eggs ---------- */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:28px;
+    transform:translate(-50%, 12px);
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(14px);
+    border:1px solid var(--glass-border);
+    color:var(--text);
+    padding:10px 16px;
+    border-radius:14px;
+    font-size:0.82rem;
+    text-align:center;
+    white-space:pre-line;
+    max-width:85%;
+    opacity:0;
+    z-index:10;
+    transition:opacity 0.4s ease, transform 0.4s ease;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+
+  /* ---------- Respect reduced-motion preferences ---------- */
+  @media (prefers-reduced-motion: reduce){
+    .blob, .particle, .status-dot, .glow, .btn.final, .card{ animation:none !important; }
+    .line, .aside, .btn{ transition:opacity 0.3s ease !important; transform:none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Calm animated background: drifting light + slow floating particles -->
+  <div class="bg-layer" aria-hidden="true">
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div id="particles"></div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+
+      <div class="card-header">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="signature" id="dharmaName" title="psst">Dharma</span>
+        <span class="header-sub mono">— honestly, for once</span>
+      </div>
+
+      <!-- Typed intro lines appear here first -->
+      <div id="intro"></div>
+
+      <!-- Message parts get appended here one at a time -->
+      <div class="feed" id="feed"></div>
+
+      <!-- Continue buttons / final CTA render here -->
+      <div class="action" id="action"></div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* =========================================================
+       BACKGROUND PARTICLES
+       Small, slow, low-opacity — calmer than earlier pages.
+       ========================================================= */
+    (function createParticles(){
+      var container = document.getElementById('particles');
+      var count = 26;
+      for (var i = 0; i < count; i++){
+        var p = document.createElement('span');
+        p.className = 'particle';
+        var size = Math.random() * 3 + 2; // 2–5px
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        var duration = Math.random() * 14 + 18; // 18–32s, slow
+        p.style.animationDuration = duration + 's';
+        p.style.animationDelay = (-Math.random() * duration) + 's';
+        p.style.setProperty('--o', (Math.random() * 0.35 + 0.15).toFixed(2));
+        container.appendChild(p);
+      }
+    })();
+
+    /* =========================================================
+       TOAST HELPER (used by both easter eggs)
+       ========================================================= */
+    var toastEl = document.getElementById('toast');
+    var toastTimer = null;
+    function showToast(text){
+      toastEl.textContent = text;
+      toastEl.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function(){
+        toastEl.classList.remove('show');
+      }, 3200);
+    }
+
+    /* =========================================================
+       EASTER EGG 1 — click "website" five times
+       ========================================================= */
+    var websiteClicks = 0;
+    document.addEventListener('click', function(e){
+      var target = e.target.closest ? e.target.closest('.hotword') : null;
+      if (!target) return;
+      websiteClicks++;
+      if (websiteClicks % 5 === 0){
+        showToast("Still can't believe this was Plan B \uD83D\uDC80");
+      }
+    });
+
+    /* =========================================================
+       EASTER EGG 2 — click Dharma's name
+       ========================================================= */
+    document.getElementById('dharmaName').addEventListener('click', function(){
+      showToast("Current status:\nProbably nervous after sending this \uD83D\uDE2D");
+    });
+
+    /* =========================================================
+       TYPING EFFECT
+       Types one line of text into a container, then resolves.
+       ========================================================= */
+    function typeLine(container, text, speed){
+      return new Promise(function(resolve){
+        var p = document.createElement('p');
+        p.className = 'type-line';
+        var span = document.createElement('span');
+        var cursor = document.createElement('span');
+        cursor.className = 'cursor';
+        p.appendChild(span);
+        p.appendChild(cursor);
+        container.appendChild(p);
+
+        var i = 0;
+        var interval = setInterval(function(){
+          span.textContent += text.charAt(i);
+          i++;
+          if (i >= text.length){
+            clearInterval(interval);
+            cursor.remove();
+            resolve();
+          }
+        }, speed);
+      });
+    }
+
+    function wait(ms){
+      return new Promise(function(resolve){ setTimeout(resolve, ms); });
+    }
+
+    /* =========================================================
+       MESSAGE CONTENT
+       Broken into small parts on purpose — nothing is dumped
+       on screen all at once.
+       ========================================================= */
+    var steps = [
+      {
+        id: 'p1',
+        lines: [
+          'Honestly...',
+          'I know making an entire <span class="hotword" data-word="website">website</span> just to start a conversation is probably not the most normal thing \uD83D\uDE2D'
+        ],
+        aside: 'Yes, even I know this website was extra \uD83D\uDC80',
+        button: 'continue...'
+      },
+      {
+        id: 'p2',
+        lines: [
+          'But the truth is...',
+          "I'm usually not someone who cares too much about what people think.",
+          'I joke around, talk loudly, and somehow create chaos everywhere.'
+        ],
+        aside: 'Dharma confidence system works strangely apparently \uD83D\uDE2D',
+        button: 'okay...'
+      },
+      {
+        id: 'p3',
+        lines: [
+          'But this time...',
+          'A normal conversation felt harder than expected.'
+        ],
+        button: 'next \u2192'
+      },
+      {
+        id: 'p4',
+        lines: [
+          "I know we don't really know each other properly.",
+          "And that's exactly why this isn't anything serious or dramatic."
+        ],
+        button: 'continue...'
+      },
+      {
+        id: 'p5',
+        lines: [
+          'I just thought...',
+          'You seemed like <span class="glow">someone I would like to know better</span>.'
+        ],
+        button: 'okay...'
+      },
+      {
+        id: 'p6',
+        lines: [
+          'Maybe this just becomes a normal conversation.',
+          'Maybe a friendship.',
+          'Maybe nothing.'
+        ],
+        button: 'next \u2192'
+      },
+      {
+        id: 'p7',
+        lines: [
+          'And honestly...',
+          'All of those are completely okay.'
+        ],
+        button: 'continue...'
+      },
+      {
+        id: 'p8',
+        lines: [
+          "I just didn't want fear to be the reason I never even tried :)"
+        ],
+        button: 'okay...'
+      },
+      {
+        id: 'nopressure',
+        lines: [
+          'Whatever happens after this...',
+          'No awkwardness.',
+          'No pressure.',
+          'Just wanted to be honest.'
+        ],
+        button: null // final CTA renders instead
+      }
+    ];
+
+    var feed = document.getElementById('feed');
+    var actionArea = document.getElementById('action');
+    var stepIndex = 0;
+
+    /* Render one part: fade lines in one at a time, then aside, then a button */
+    function renderStep(step){
+      var bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.id = step.id;
+      feed.appendChild(bubble);
+
+      var lineEls = step.lines.map(function(html){
+        var p = document.createElement('p');
+        p.className = 'line';
+        p.innerHTML = html;
+        bubble.appendChild(p);
+        return p;
+      });
+
+      var asideEl = null;
+      if (step.aside){
+        asideEl = document.createElement('p');
+        asideEl.className = 'aside mono';
+        asideEl.textContent = step.aside;
+        bubble.appendChild(asideEl);
+      }
+
+      // Stagger the fade-in of each line, calm and slow
+      lineEls.forEach(function(el, i){
+        setTimeout(function(){
+          el.classList.add('show');
+          bubble.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 450 + i * 650);
+      });
+
+      var totalDelay = 450 + lineEls.length * 650;
+
+      if (asideEl){
+        setTimeout(function(){
+          asideEl.classList.add('show');
+        }, totalDelay + 250);
+        totalDelay += 550;
+      }
+
+      // Show the appropriate action after the text has settled
+      setTimeout(function(){
+        if (step.button){
+          renderContinueButton(step.button);
+        } else {
+          renderFinalButton();
+        }
+      }, totalDelay + 350);
+    }
+
+    function clearAction(){
+      actionArea.innerHTML = '';
+    }
+
+    function renderContinueButton(label){
+      clearAction();
+      var btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = label;
+      btn.addEventListener('click', function(){
+        clearAction();
+        stepIndex++;
+        if (stepIndex < steps.length){
+          renderStep(steps[stepIndex]);
+        }
+      });
+      actionArea.appendChild(btn);
+      requestAnimationFrame(function(){
+        setTimeout(function(){ btn.classList.add('show'); }, 30);
+      });
+    }
+
+    function renderFinalButton(){
+      clearAction();
+      var btn = document.createElement('button');
+      btn.className = 'btn final';
+      btn.textContent = 'So... what now? \uD83D\uDE02 \u2192';
+      btn.addEventListener('click', function(){
+        window.location.href = 'choice.html';
+      });
+      actionArea.appendChild(btn);
+      requestAnimationFrame(function(){
+        setTimeout(function(){
+          btn.classList.add('show');
+          btn.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 30);
+      });
+    }
+
+    /* =========================================================
+       OPENING SEQUENCE
+       Typed lines, slower and calmer than the rest of the site,
+       then a "continue..." button hands off into the main message.
+       ========================================================= */
+    function runIntro(){
+      var introEl = document.getElementById('intro');
+      typeLine(introEl, 'Okay...', 55)
+        .then(function(){ return wait(700); })
+        .then(function(){ return typeLine(introEl, 'Jokes aside for a second.', 45); })
+        .then(function(){ return wait(700); })
+        .then(function(){ return typeLine(introEl, "Here's the actual reason this exists.", 40); })
+        .then(function(){ return wait(500); })
+        .then(function(){
+          renderContinueButton('continue...');
+        });
+    }
+
+    runIntro();
+  </script>
+
+</body>
+</html>

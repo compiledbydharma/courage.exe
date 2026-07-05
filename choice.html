@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070B14">
+<title>What Happens Now? — Conversation Starter</title>
+
+<!-- Google Fonts: Poppins for body copy, JetBrains Mono for status/hint text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ---------- Design tokens ---------- */
+  :root{
+    --bg:#070B14;
+    --primary:#38BDF8;
+    --primary-dark:#0EA5E9;
+    --success:#22C55E;
+    --warning:#FACC15;
+    --text:#F8FAFC;
+    --secondary:#94A3B8;
+    --glass:rgba(255,255,255,0.07);
+    --glass-border:rgba(56,189,248,0.25);
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    min-height:100vh;
+    background:radial-gradient(circle at 50% -10%, #0c1830 0%, var(--bg) 55%);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .mono{ font-family:'JetBrains Mono', monospace; letter-spacing:0.02em; }
+
+  /* ---------- Ambient background ---------- */
+  .bg-layer{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+
+  .blob{ position:absolute; border-radius:50%; filter:blur(70px); will-change:transform; }
+  .blob1{ width:320px; height:320px; background:var(--primary); opacity:0.16; top:-90px; left:-90px; animation:driftA 26s ease-in-out infinite; }
+  .blob2{ width:280px; height:280px; background:var(--primary-dark); opacity:0.14; bottom:-110px; right:-70px; animation:driftB 30s ease-in-out infinite; }
+  @keyframes driftA{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(40px,60px); } }
+  @keyframes driftB{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-30px,-40px); } }
+
+  .particle{
+    position:absolute; bottom:-10px; border-radius:50%;
+    background:radial-gradient(circle, #7dd3fc 0%, rgba(56,189,248,0) 70%);
+    animation-name:floatUp; animation-timing-function:linear; animation-iteration-count:infinite;
+  }
+  @keyframes floatUp{
+    0%{ transform:translateY(0) scale(1); opacity:0; }
+    10%{ opacity:var(--o, 0.4); }
+    90%{ opacity:var(--o, 0.4); }
+    100%{ transform:translateY(-110vh) scale(0.6); opacity:0; }
+  }
+
+  /* ---------- Layout ---------- */
+  .page{ position:relative; z-index:2; display:flex; justify-content:center; padding:56px 0 90px; }
+
+  .card{
+    width:90%; max-width:430px;
+    background:var(--glass);
+    backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--glass-border);
+    border-radius:25px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:26px 22px 24px;
+    animation:cardIn 1s ease-out;
+  }
+  @keyframes cardIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* ---------- Typing intro ---------- */
+  .type-line{ margin:0 0 8px; line-height:1.6; font-size:1rem; min-height:1.6em; }
+  .type-line .cursor{
+    display:inline-block; width:2px; height:1em; background:var(--primary);
+    margin-left:2px; vertical-align:-2px; animation:blink 0.9s step-end infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- Sections ---------- */
+  .section{ margin-top:22px; opacity:0; transform:translateY(10px); transition:opacity 0.6s ease, transform 0.6s ease; }
+  .section.show{ opacity:1; transform:translateY(0); }
+
+  .section-title{ margin:0 0 14px; font-size:0.95rem; font-weight:500; color:var(--text); }
+  .section-hint{ margin:-8px 0 14px; font-size:0.72rem; color:var(--secondary); }
+
+  /* ---------- Choice cards ---------- */
+  .cards{ display:flex; flex-direction:column; gap:12px; }
+
+  .choice-card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.09);
+    border-radius:18px;
+    padding:14px 16px;
+    cursor:pointer;
+    opacity:0; transform:translateY(10px) scale(0.98);
+    transition:opacity 0.5s ease, transform 0.5s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  }
+  .choice-card.enter{ opacity:1; transform:translateY(0) scale(1); }
+  .choice-card:hover{ border-color:rgba(56,189,248,0.4); }
+  .choice-card:active{ transform:scale(0.98); }
+  .choice-card.selected{
+    border-color:rgba(56,189,248,0.55);
+    box-shadow:0 0 20px rgba(56,189,248,0.18);
+    background:rgba(56,189,248,0.06);
+  }
+
+  .choice-top{ display:flex; align-items:center; gap:10px; }
+  .choice-emoji{ font-size:1.3rem; flex-shrink:0; }
+  .choice-label{ font-size:0.94rem; line-height:1.4; }
+
+  .choice-response{
+    margin:0; padding-top:0; max-height:0; overflow:hidden;
+    font-size:0.82rem; color:var(--success); line-height:1.55;
+    transition:max-height 0.4s ease, padding-top 0.4s ease, opacity 0.4s ease;
+    opacity:0;
+  }
+  .choice-response p{ margin:2px 0 0; }
+  .choice-response.show{ max-height:80px; padding-top:10px; opacity:1; }
+
+  /* Starter cards reuse most of the same look with a slightly different accent */
+  .starter-card .choice-response{ color:var(--primary); }
+
+  /* ---------- Buttons ---------- */
+  .action{ margin-top:18px; display:flex; justify-content:center; }
+
+  .btn{
+    font-family:'Poppins', sans-serif;
+    border:none; cursor:pointer; color:#04121F;
+    background:linear-gradient(135deg, var(--primary), var(--primary-dark));
+    padding:11px 22px; border-radius:999px;
+    font-size:0.88rem; font-weight:600; letter-spacing:0.01em;
+    box-shadow:0 0 18px rgba(56,189,248,0.35);
+    opacity:0; transform:translateY(6px);
+    transition:opacity 0.6s ease, transform 0.6s ease, box-shadow 0.3s ease;
+  }
+  .btn.show{ opacity:1; transform:translateY(0); }
+  .btn:hover{ box-shadow:0 0 26px rgba(56,189,248,0.55); }
+  .btn:active{ transform:scale(0.97); }
+
+  .btn.final{ padding:14px 28px; font-size:0.95rem; animation:finalGlow 2.8s ease-in-out infinite; }
+  @keyframes finalGlow{
+    0%,100%{ box-shadow:0 0 18px rgba(56,189,248,0.35); }
+    50%{ box-shadow:0 0 30px rgba(56,189,248,0.65); }
+  }
+
+  /* ---------- Final message lines ---------- */
+  .final-line{
+    margin:0; line-height:1.65; font-size:0.98rem;
+    opacity:0; transform:translateY(8px);
+    transition:opacity 0.6s ease, transform 0.6s ease;
+  }
+  .final-line.show{ opacity:1; transform:translateY(0); }
+  .final-lines{ display:flex; flex-direction:column; gap:8px; }
+
+  /* ---------- Toast (bottom, for nudges + small callouts) ---------- */
+  .toast{
+    position:fixed; left:50%; bottom:28px; transform:translate(-50%, 12px);
+    background:rgba(255,255,255,0.08); backdrop-filter:blur(14px);
+    border:1px solid var(--glass-border); color:var(--text);
+    padding:10px 16px; border-radius:14px; font-size:0.82rem; text-align:center;
+    white-space:pre-line; max-width:85%;
+    opacity:0; z-index:10; transition:opacity 0.4s ease, transform 0.4s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+  .toast.warning{ border-color:rgba(250,204,21,0.4); }
+  .toast.success{ border-color:rgba(34,197,94,0.4); }
+
+  /* ---------- Achievement banner (top) ---------- */
+  .achievement{
+    position:fixed; top:16px; left:50%; transform:translate(-50%, -140%);
+    background:rgba(10,14,24,0.85); backdrop-filter:blur(14px);
+    border:1px solid rgba(250,204,21,0.5);
+    box-shadow:0 0 24px rgba(250,204,21,0.25);
+    color:var(--text); padding:12px 18px; border-radius:16px;
+    font-size:0.82rem; max-width:88%; z-index:20;
+    display:flex; align-items:center; gap:10px;
+    transition:transform 0.5s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .achievement.show{ transform:translate(-50%, 0); }
+  .achievement .trophy{ font-size:1.2rem; }
+  .achievement .label{
+    display:block; font-size:0.66rem; color:var(--warning);
+    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .blob, .particle, .btn.final, .card{ animation:none !important; }
+    .section, .choice-card, .btn, .final-line, .choice-response, .toast, .achievement{ transition:opacity 0.3s ease !important; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="bg-layer" aria-hidden="true">
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+    <div id="particles"></div>
+  </div>
+
+  <div class="page">
+    <div class="card">
+
+      <!-- Typed opening -->
+      <div id="intro"></div>
+
+      <!-- Stage 1: main choice cards -->
+      <div class="section" id="mainSection">
+        <p class="section-hint mono">tap a card — there's no wrong answer</p>
+        <div class="cards" id="mainCards"></div>
+        <div class="action" id="mainAction"></div>
+      </div>
+
+      <!-- Stage 2: conversation starter mini-game -->
+      <div class="section" id="starterSection">
+        <p class="section-title">Choose a conversation starter:</p>
+        <div class="cards" id="starterCards"></div>
+        <div class="action" id="starterAction"></div>
+      </div>
+
+      <!-- Stage 3: final message -->
+      <div class="section" id="finalSection">
+        <div class="final-lines" id="finalLines"></div>
+        <div class="action" id="finalAction"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="achievement" id="achievement">
+    <span class="trophy">🏆</span>
+    <span>
+      <span class="label">Achievement unlocked</span>
+      <span id="achievementText"></span>
+    </span>
+  </div>
+
+  <script>
+    /* =========================================================
+       BACKGROUND PARTICLES
+       ========================================================= */
+    (function createParticles(){
+      var container = document.getElementById('particles');
+      var count = 26;
+      for (var i = 0; i < count; i++){
+        var p = document.createElement('span');
+        p.className = 'particle';
+        var size = Math.random() * 3 + 2;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        var duration = Math.random() * 14 + 18;
+        p.style.animationDuration = duration + 's';
+        p.style.animationDelay = (-Math.random() * duration) + 's';
+        p.style.setProperty('--o', (Math.random() * 0.35 + 0.15).toFixed(2));
+        container.appendChild(p);
+      }
+    })();
+
+    /* =========================================================
+       TOAST + ACHIEVEMENT HELPERS
+       ========================================================= */
+    var toastEl = document.getElementById('toast');
+    var toastTimer = null;
+    function showToast(text, kind){
+      toastEl.textContent = text;
+      toastEl.className = 'toast show' + (kind ? ' ' + kind : '');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 3200);
+    }
+
+    var achievementEl = document.getElementById('achievement');
+    var achievementTextEl = document.getElementById('achievementText');
+    var achievementTimer = null;
+    function showAchievement(text){
+      achievementTextEl.textContent = text;
+      achievementEl.classList.add('show');
+      clearTimeout(achievementTimer);
+      achievementTimer = setTimeout(function(){ achievementEl.classList.remove('show'); }, 4200);
+    }
+
+    /* =========================================================
+       TYPING + WAIT HELPERS
+       ========================================================= */
+    function typeLine(container, text, speed){
+      return new Promise(function(resolve){
+        var p = document.createElement('p');
+        p.className = 'type-line';
+        var span = document.createElement('span');
+        var cursor = document.createElement('span');
+        cursor.className = 'cursor';
+        p.appendChild(span);
+        p.appendChild(cursor);
+        container.appendChild(p);
+
+        var i = 0;
+        var interval = setInterval(function(){
+          span.textContent += text.charAt(i);
+          i++;
+          if (i >= text.length){
+            clearInterval(interval);
+            cursor.remove();
+            resolve();
+          }
+        }, speed);
+      });
+    }
+    function wait(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
+    function revealSection(el){ el.classList.add('show'); }
+    function showBtn(btn){ requestAnimationFrame(function(){ setTimeout(function(){ btn.classList.add('show'); }, 30); }); }
+
+    /* =========================================================
+       DATA
+       ========================================================= */
+    var mainOptions = [
+      { key:'funny',      emoji:'😂', label:'Honestly, this was unexpected but funny',
+        response:['Best possible review received 😂','At least the website survived.'] },
+      { key:'disbelief',  emoji:'💀', label:"I still can't believe you made a website",
+        response:['Understandable reaction.','Even the creator questioned this decision 😭'] },
+      { key:'starter',    emoji:'📸', label:"Okay, let's start with a normal conversation",
+        response:['Mission successful ✔','Conversation unlocked.'] },
+      { key:'processing', emoji:'🤔', label:'Still processing everything',
+        response:['Completely fair 😂','Processing time granted.'] }
+    ];
+
+    var starterOptions = [
+      { key:'football', emoji:'⚽', label:'Football',
+        response:['Warning: Neymar topic may last longer than expected 🇧🇷'] },
+      { key:'photos',   emoji:'📸', label:'Random photos',
+        response:['Photography discussion unlocked.'] },
+      { key:'roast',    emoji:'😂', label:'Roast this website',
+        response:['Probably the easiest starting point honestly 💀'] },
+      { key:'random',   emoji:'🎲', label:'Random',
+        response:['Random conversation mode activated.'] }
+    ];
+
+    /* =========================================================
+       CARD RENDERING (shared by both card sets)
+       ========================================================= */
+    function buildCard(option, extraClass, onSelect){
+      var card = document.createElement('div');
+      card.className = 'choice-card' + (extraClass ? ' ' + extraClass : '');
+
+      var top = document.createElement('div');
+      top.className = 'choice-top';
+      top.innerHTML =
+        '<span class="choice-emoji">' + option.emoji + '</span>' +
+        '<span class="choice-label">' + option.label + '</span>';
+
+      var resp = document.createElement('div');
+      resp.className = 'choice-response';
+      option.response.forEach(function(line){
+        var p = document.createElement('p');
+        p.textContent = line;
+        resp.appendChild(p);
+      });
+
+      card.appendChild(top);
+      card.appendChild(resp);
+
+      card.addEventListener('click', function(){
+        var firstOpen = !resp.classList.contains('show');
+        resp.classList.toggle('show');
+        card.classList.add('selected');
+        onSelect(option, firstOpen);
+      });
+
+      return card;
+    }
+
+    /* =========================================================
+       STAGE 1 — MAIN CHOICE CARDS
+       ========================================================= */
+    var mainCardsEl = document.getElementById('mainCards');
+    var mainClicked = new Set();
+    var achievementShown = false;
+    var idleTimer = null;
+
+    function checkTimelineAchievement(){
+      if (!achievementShown && mainClicked.size === mainOptions.length){
+        achievementShown = true;
+        showAchievement('Explored every possible timeline 💀');
+      }
+    }
+
+    function renderMainCards(){
+      mainOptions.forEach(function(opt, i){
+        var card = buildCard(opt, null, function(option){
+          mainClicked.add(option.key);
+          try { localStorage.setItem('selectedChoice', option.key); } catch(e) {}
+          clearTimeout(idleTimer);
+          checkTimelineAchievement();
+          revealNextButtonForStarter();
+        });
+        mainCardsEl.appendChild(card);
+        setTimeout(function(){ card.classList.add('enter'); }, 120 + i * 130);
+      });
+
+      // Gentle nudge if she takes a while to decide — no pressure, just a wink
+      idleTimer = setTimeout(function(){
+        showToast('Decision loading...\nNo hurry though 😂', 'warning');
+      }, 14000);
+    }
+
+    var starterRevealed = false;
+    function revealNextButtonForStarter(){
+      var actionEl = document.getElementById('mainAction');
+      if (actionEl.querySelector('.btn')) return; // already shown
+      var btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'next →';
+      btn.addEventListener('click', function(){
+        btn.remove();
+        if (!starterRevealed){
+          starterRevealed = true;
+          revealSection(document.getElementById('starterSection'));
+          renderStarterCards();
+        } else {
+          document.getElementById('starterSection').scrollIntoView({ behavior:'smooth', block:'start' });
+        }
+      });
+      actionEl.appendChild(btn);
+      showBtn(btn);
+    }
+
+    /* =========================================================
+       STAGE 2 — CONVERSATION STARTER MINI-GAME
+       ========================================================= */
+    var starterCardsEl = document.getElementById('starterCards');
+    var starterClicked = new Set();
+    var finalRevealed = false;
+
+    function renderStarterCards(){
+      starterOptions.forEach(function(opt, i){
+        var card = buildCard(opt, 'starter-card', function(option, firstOpen){
+          starterClicked.add(option.key);
+          try { localStorage.setItem('selectedStarter', option.key); } catch(e) {}
+
+          if (option.key === 'football'){
+            showToast('Dharma approval increased +100 ⚽', 'success');
+          }
+          revealFinalButton();
+        });
+        starterCardsEl.appendChild(card);
+        setTimeout(function(){ card.classList.add('enter'); }, 120 + i * 130);
+      });
+    }
+
+    function revealFinalButton(){
+      var actionEl = document.getElementById('starterAction');
+      if (actionEl.querySelector('.btn')) return;
+      var btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = 'next →';
+      btn.addEventListener('click', function(){
+        btn.remove();
+        if (!finalRevealed){
+          finalRevealed = true;
+          revealSection(document.getElementById('finalSection'));
+          runFinalMessage();
+        } else {
+          document.getElementById('finalSection').scrollIntoView({ behavior:'smooth', block:'start' });
+        }
+      });
+      actionEl.appendChild(btn);
+      showBtn(btn);
+    }
+
+    /* =========================================================
+       STAGE 3 — FINAL MESSAGE + CTA
+       ========================================================= */
+    function runFinalMessage(){
+      var linesEl = document.getElementById('finalLines');
+      var lines = [
+        'Whatever you choose...',
+        'Thanks for actually going through this random little journey.',
+        'No pressure.',
+        'No awkwardness.',
+        'Just a start :)'
+      ];
+      lines.forEach(function(text, i){
+        var p = document.createElement('p');
+        p.className = 'final-line';
+        p.textContent = text;
+        linesEl.appendChild(p);
+        setTimeout(function(){
+          p.classList.add('show');
+          p.scrollIntoView({ behavior:'smooth', block:'end' });
+        }, 300 + i * 550);
+      });
+
+      var totalDelay = 300 + lines.length * 550;
+      setTimeout(function(){
+        var actionEl = document.getElementById('finalAction');
+        var btn = document.createElement('button');
+        btn.className = 'btn final';
+        btn.textContent = 'One last thing 😂 →';
+        btn.addEventListener('click', function(){
+          window.location.href = 'effort.html';
+        });
+        actionEl.appendChild(btn);
+        showBtn(btn);
+        btn.scrollIntoView({ behavior:'smooth', block:'end' });
+      }, totalDelay + 300);
+    }
+
+    /* =========================================================
+       OPENING TYPED SEQUENCE
+       ========================================================= */
+    function runIntro(){
+      var introEl = document.getElementById('intro');
+      typeLine(introEl, 'So...', 55)
+        .then(function(){ return wait(650); })
+        .then(function(){ return typeLine(introEl, 'You somehow reached the end 😭', 42); })
+        .then(function(){ return wait(650); })
+        .then(function(){ return typeLine(introEl, 'Now the biggest question...', 42); })
+        .then(function(){ return wait(650); })
+        .then(function(){ return typeLine(introEl, 'What happens next?', 45); })
+        .then(function(){ return wait(500); })
+        .then(function(){
+          revealSection(document.getElementById('mainSection'));
+          renderMainCards();
+        });
+    }
+
+    runIntro();
+  </script>
+
+</body>
+</html>

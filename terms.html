@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Terms Agreement // DharmaOS</title>
+
+<!-- Google Fonts: Poppins for UI text, JetBrains Mono for status/system text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ DESIGN TOKENS (matches previous pages) ============ */
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --success:#22C55E;
+    --warning:#FACC15;
+    --text:#F8FAFC;
+    --text-secondary:#94A3B8;
+    --glass:rgba(255,255,255,0.07);
+    --border-glow:rgba(56,189,248,0.35);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+
+  body{
+    min-height:100vh; min-height:100dvh;
+    background:
+      radial-gradient(circle at 25% 15%, #0c1a30 0%, transparent 55%),
+      radial-gradient(circle at 80% 85%, #0a1524 0%, transparent 50%),
+      var(--bg);
+    font-family:'Poppins', sans-serif;
+    color:var(--text);
+    overflow-x:hidden;
+    position:relative;
+    animation:pageFade .6s ease both;
+  }
+  @keyframes pageFade{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ============ BACKGROUND: particles ============ */
+  #particles{ position:fixed; inset:0; width:100%; height:100%; z-index:0; }
+
+  /* ============ BACKGROUND: floating blurred circles ============ */
+  .bg-orbs{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .orb{
+    position:absolute; border-radius:50%; filter:blur(60px);
+    background:radial-gradient(circle, var(--accent), transparent 70%);
+    animation:floatOrb 18s ease-in-out infinite; will-change:transform;
+  }
+  .orb-1{ width:270px; height:270px; top:-60px; left:-70px; opacity:0.26; animation-duration:19s; }
+  .orb-2{ width:230px; height:230px; bottom:-50px; right:-40px; opacity:0.24; animation-duration:23s; animation-delay:-5s; }
+  .orb-3{ width:190px; height:190px; top:52%; left:66%; opacity:0.14; animation-duration:21s; animation-delay:-10s; }
+  @keyframes floatOrb{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(22px,-26px); } }
+
+  /* ============ BACKGROUND: subtle grid ============ */
+  .grid-overlay{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.045) 1px, transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+    mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+  }
+
+  /* ============ LAYOUT ============ */
+  .stage{
+    position:relative; z-index:1;
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+
+  /* ============ GLASS CARD ============ */
+  .glass-card{
+    position:relative;
+    width:90%; max-width:420px;
+    border-radius:25px;
+    background:var(--glass);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--border-glow);
+    box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:28px 24px;
+    display:flex; flex-direction:column; gap:18px;
+    overflow:hidden;
+    animation:cardIn .7s cubic-bezier(.22,.9,.32,1) both;
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(18px) scale(0.97); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* ============ HEADER ============ */
+  .header-block{ display:flex; flex-direction:column; gap:6px; }
+  .heading{
+    font-size:1.3rem; font-weight:600; letter-spacing:-0.01em;
+    opacity:0; animation:fadeUp .5s ease .1s forwards;
+  }
+  .subtitle{
+    font-size:0.82rem; color:var(--text-secondary); line-height:1.5;
+    opacity:0; animation:fadeUp .5s ease .22s forwards;
+  }
+  .lead-text{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.74rem; color:rgba(248,250,252,0.55);
+    margin-top:4px;
+    opacity:0; animation:fadeUp .5s ease .34s forwards;
+  }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* ============ TERMS CHECKLIST ============ */
+  .terms-list{ display:flex; flex-direction:column; gap:12px; }
+
+  .term-item{
+    display:flex; align-items:flex-start; gap:12px;
+    cursor:pointer; user-select:none;
+    padding:4px 2px;
+    opacity:0; animation:fadeUp .45s ease forwards;
+  }
+  .term-item:nth-child(1){ animation-delay:.42s; }
+  .term-item:nth-child(2){ animation-delay:.5s; }
+  .term-item:nth-child(3){ animation-delay:.58s; }
+  .term-item:nth-child(4){ animation-delay:.66s; }
+  .term-item:nth-child(5){ animation-delay:.74s; }
+
+  .term-checkbox{
+    position:absolute; opacity:0; width:0; height:0;
+  }
+
+  .checkbox-visual{
+    flex-shrink:0; width:22px; height:22px; margin-top:1px;
+    border-radius:7px;
+    border:1.5px solid rgba(255,255,255,0.25);
+    background:rgba(255,255,255,0.04);
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+  .checkbox-visual .check-icon{ width:14px; height:14px; }
+  .checkbox-visual .check-icon path{
+    fill:none; stroke:var(--bg); stroke-width:3.4;
+    stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:22; stroke-dashoffset:22;
+    transition:stroke-dashoffset .25s ease;
+  }
+
+  .term-checkbox:checked + .checkbox-visual{
+    border-color:var(--accent);
+    background:var(--accent);
+    box-shadow:0 0 14px rgba(56,189,248,0.6);
+  }
+  .term-checkbox:checked + .checkbox-visual .check-icon path{ stroke-dashoffset:0; }
+
+  .checkbox-visual.pop{ animation:checkPop .3s ease; }
+  @keyframes checkPop{ 0%{ transform:scale(1); } 45%{ transform:scale(1.22); } 100%{ transform:scale(1); } }
+
+  .term-text{ font-size:0.86rem; line-height:1.45; color:var(--text); }
+
+  /* ============ PROGRESS INDICATOR ============ */
+  .progress-block{
+    display:flex; flex-direction:column; gap:8px;
+    font-family:'JetBrains Mono', monospace;
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding-top:14px;
+  }
+  .progress-row{
+    display:flex; justify-content:space-between;
+    font-size:0.76rem; color:var(--text-secondary);
+  }
+  #progressCount{ color:var(--accent); font-weight:600; }
+
+  .progress-track{
+    width:100%; height:6px; border-radius:999px;
+    background:rgba(255,255,255,0.1); overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; width:0%; border-radius:999px;
+    background:linear-gradient(90deg, var(--accent), #7dd3fc);
+    box-shadow:0 0 8px rgba(56,189,248,0.5);
+    transition:width .4s cubic-bezier(.22,.9,.32,1);
+  }
+
+  .verification-complete{
+    font-size:0.78rem; color:var(--success); text-align:center;
+    animation:fadeUp .35s ease both;
+  }
+
+  /* ============ CONTINUE BUTTON ============ */
+  .cta-btn{
+    width:100%;
+    font-family:'Poppins', sans-serif;
+    font-weight:600; font-size:0.92rem;
+    border:none; border-radius:999px;
+    padding:15px 20px;
+    cursor:pointer; touch-action:manipulation;
+    transition:transform .2s ease, box-shadow .3s ease, background .3s ease, color .3s ease;
+  }
+  .cta-btn.disabled-look{
+    color:rgba(248,250,252,0.4);
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.12);
+    box-shadow:none;
+  }
+  .cta-btn.active{
+    color:#04121c;
+    background:linear-gradient(135deg, #38BDF8, #7dd3fc);
+    box-shadow:0 8px 24px rgba(56,189,248,0.35);
+  }
+  .cta-btn.active:hover{ box-shadow:0 10px 30px rgba(56,189,248,0.5); }
+  .cta-btn:active{ transform:scale(0.96); }
+
+  .cta-btn.unlock-pop{ animation:unlockPop .4s cubic-bezier(.22,.9,.32,1); }
+  @keyframes unlockPop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.04); } 100%{ transform:scale(1); } }
+
+  .cta-btn.shake{ animation:btnShake .4s ease; }
+  @keyframes btnShake{
+    20%,80%{ transform:translateX(-2px); }
+    40%,60%{ transform:translateX(3px); }
+    50%{ transform:translateX(-4px); }
+  }
+
+  /* ============ FAKE LEGAL TEXT ============ */
+  .fake-legal{
+    font-size:0.66rem; line-height:1.5;
+    color:rgba(248,250,252,0.32);
+    text-align:center;
+  }
+
+  /* ============ CONFETTI ============ */
+  .confetti-container{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:5; }
+  .confetti-piece{
+    position:absolute; top:42%; width:6px; height:10px; border-radius:2px;
+    animation:confettiBurst 1.1s ease-out forwards;
+  }
+  @keyframes confettiBurst{
+    0%{ transform:translate(0,0) rotate(0deg); opacity:1; }
+    100%{ transform:translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity:0; }
+  }
+
+  /* ============ TOAST ============ */
+  .toast{
+    position:fixed; left:50%; bottom:32px;
+    transform:translate(-50%, 16px);
+    background:rgba(13,20,32,0.92);
+    border:1px solid rgba(56,189,248,0.3);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    font-size:0.82rem; line-height:1.4;
+    padding:12px 18px; border-radius:14px;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease, transform .3s ease;
+    z-index:10; max-width:86%; text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+  .toast.warn{ border-color:rgba(250,204,21,0.4); color:var(--warning); }
+
+  @media (prefers-reduced-motion: reduce){
+    .orb{ animation:none; }
+    .glass-card{ animation:none; }
+    .heading, .subtitle, .lead-text, .term-item, .verification-complete{ animation:none; opacity:1; }
+    body{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <canvas id="particles"></canvas>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
+  <main class="stage">
+    <section class="glass-card" id="card">
+
+      <!-- confetti overlay, populated when terms are accepted -->
+      <div class="confetti-container" id="confettiContainer"></div>
+
+      <div class="header-block">
+        <h1 class="heading">Before we continue... 📄</h1>
+        <p class="subtitle">Every questionable idea needs some terms &amp; conditions 😭</p>
+        <p class="lead-text">Please accept these extremely serious rules:</p>
+      </div>
+
+      <!-- custom checkbox terms list -->
+      <div class="terms-list" id="termsList">
+        <label class="term-item">
+          <input type="checkbox" class="term-checkbox">
+          <span class="checkbox-visual"><svg class="check-icon" viewBox="0 0 24 24"><path d="M4 12.5l5 5 11-11"/></svg></span>
+          <span class="term-text">I agree not to judge the creator too quickly 😂</span>
+        </label>
+        <label class="term-item">
+          <input type="checkbox" class="term-checkbox">
+          <span class="checkbox-visual"><svg class="check-icon" viewBox="0 0 24 24"><path d="M4 12.5l5 5 11-11"/></svg></span>
+          <span class="term-text">I understand social skills are still loading...</span>
+        </label>
+        <label class="term-item">
+          <input type="checkbox" class="term-checkbox">
+          <span class="checkbox-visual"><svg class="check-icon" viewBox="0 0 24 24"><path d="M4 12.5l5 5 11-11"/></svg></span>
+          <span class="term-text">I accept that making a website was somehow easier than saying hi 💀</span>
+        </label>
+        <label class="term-item">
+          <input type="checkbox" class="term-checkbox">
+          <span class="checkbox-visual"><svg class="check-icon" viewBox="0 0 24 24"><path d="M4 12.5l5 5 11-11"/></svg></span>
+          <span class="term-text">I know this is NOT a proposal or movie scene</span>
+        </label>
+        <label class="term-item">
+          <input type="checkbox" class="term-checkbox">
+          <span class="checkbox-visual"><svg class="check-icon" viewBox="0 0 24 24"><path d="M4 12.5l5 5 11-11"/></svg></span>
+          <span class="term-text">I understand this is just a different way to start a conversation :)</span>
+        </label>
+      </div>
+
+      <!-- live progress counter -->
+      <div class="progress-block">
+        <div class="progress-row">
+          <span>Terms accepted:</span>
+          <span id="progressCount">0/5 completed</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <p class="verification-complete" id="verificationComplete" hidden>Verification complete ✔</p>
+      </div>
+
+      <!-- continue button (never truly disabled, so it can react to clicks) -->
+      <button class="cta-btn disabled-look" id="continueBtn">Accept terms first 😭</button>
+
+      <p class="fake-legal">These terms are 0% legally valid and 100% made because overthinking exists.</p>
+
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ===================== PARTICLE BACKGROUND ===================== */
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+  function makeParticles(count){
+    const arr = [];
+    for(let i = 0; i < count; i++){
+      arr.push({
+        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+        r: Math.random()*1.6 + 0.6,
+        vx: (Math.random()-0.5)*0.15, vy: (Math.random()-0.5)*0.15,
+        o: Math.random()*0.5 + 0.15
+      });
+    }
+    return arr;
+  }
+
+  function drawParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(148,211,248,${p.o})`;
+      ctx.fill();
+    });
+  }
+
+  function stepParticles(){
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = canvas.width; if(p.x > canvas.width) p.x = 0;
+      if(p.y < 0) p.y = canvas.height; if(p.y > canvas.height) p.y = 0;
+    });
+  }
+
+  function animateParticles(){
+    stepParticles(); drawParticles();
+    if(!reduceMotion) requestAnimationFrame(animateParticles);
+  }
+
+  resizeCanvas();
+  particles = makeParticles(42);
+  drawParticles();
+  if(!reduceMotion){
+    requestAnimationFrame(animateParticles);
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  /* ===================== TOAST HELPER ===================== */
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg, { duration = 2400, warn = false } = {}){
+    toastEl.textContent = msg;
+    toastEl.classList.toggle('warn', warn);
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), duration);
+  }
+
+  /* ===================== CONFETTI ===================== */
+  function launchConfetti(){
+    const container = document.getElementById('confettiContainer');
+    const colors = ['#38BDF8', '#7dd3fc', '#0ea5e9', '#bae6fd'];
+    for(let i = 0; i < 28; i++){
+      const p = document.createElement('span');
+      p.className = 'confetti-piece';
+      p.style.left = (30 + Math.random()*40) + '%';
+      p.style.background = colors[Math.floor(Math.random()*colors.length)];
+      p.style.setProperty('--dx', (Math.random()*200 - 100) + 'px');
+      p.style.setProperty('--dy', (Math.random()*-180 - 40) + 'px');
+      p.style.setProperty('--rot', (Math.random()*360) + 'deg');
+      p.style.animationDelay = (Math.random()*0.12) + 's';
+      container.appendChild(p);
+      setTimeout(()=> p.remove(), 1400);
+    }
+  }
+
+  /* ===================== CHECKBOX / PROGRESS LOGIC ===================== */
+  const checkboxes = Array.from(document.querySelectorAll('.term-checkbox'));
+  const progressCount = document.getElementById('progressCount');
+  const progressFill = document.getElementById('progressFill');
+  const verificationComplete = document.getElementById('verificationComplete');
+  const continueBtn = document.getElementById('continueBtn');
+
+  let firstCheckTime = null;
+  let speedrunShown = false;
+
+  function countChecked(){
+    return checkboxes.filter(cb => cb.checked).length;
+  }
+
+  function updateProgress(){
+    const count = countChecked();
+    progressCount.textContent = count + '/5 completed';
+    progressFill.style.width = (count / checkboxes.length * 100) + '%';
+
+    const allChecked = count === checkboxes.length;
+    verificationComplete.hidden = !allChecked;
+
+    if(allChecked){
+      continueBtn.classList.remove('disabled-look');
+      continueBtn.classList.add('active');
+      continueBtn.textContent = 'Agreement accepted 😂 →';
+      if(!continueBtn.dataset.unlocked){
+        continueBtn.classList.add('unlock-pop');
+        setTimeout(()=> continueBtn.classList.remove('unlock-pop'), 400);
+        continueBtn.dataset.unlocked = 'true';
+      }
+    } else {
+      continueBtn.classList.add('disabled-look');
+      continueBtn.classList.remove('active');
+      continueBtn.textContent = 'Accept terms first 😭';
+      delete continueBtn.dataset.unlocked;
+    }
+  }
+
+  checkboxes.forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      const visual = cb.nextElementSibling;
+
+      if(cb.checked){
+        visual.classList.add('pop');
+        setTimeout(()=> visual.classList.remove('pop'), 300);
+
+        if(firstCheckTime === null) firstCheckTime = Date.now();
+
+        if(countChecked() === checkboxes.length && !speedrunShown){
+          const elapsed = Date.now() - firstCheckTime;
+          if(elapsed < 3000){
+            speedrunShown = true;
+            showToast('Speedrun detected ⚡');
+          }
+        }
+      } else {
+        showToast('Changing your mind already? 😭', { warn: true });
+      }
+
+      updateProgress();
+    });
+  });
+
+  /* ===================== CONTINUE BUTTON ===================== */
+  let disabledClickCount = 0;
+  const disabledMessages = [
+    'Nice try 😂',
+    'The terms are literally right there 😭',
+    'Skipping terms failed successfully 💀'
+  ];
+
+  continueBtn.addEventListener('click', ()=>{
+    const allChecked = countChecked() === checkboxes.length;
+
+    if(!allChecked){
+      disabledClickCount++;
+      const msg = disabledMessages[Math.min(disabledClickCount - 1, disabledMessages.length - 1)];
+      showToast(msg, { warn: true });
+      continueBtn.classList.add('shake');
+      setTimeout(()=> continueBtn.classList.remove('shake'), 400);
+      return;
+    }
+
+    launchConfetti();
+    continueBtn.disabled = true;
+    setTimeout(()=>{ window.location.href = 'guess.html'; }, 650);
+  });
+
+  updateProgress();
+
+})();
+</script>
+</body>
+</html>

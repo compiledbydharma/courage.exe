@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Suspicion Check // DharmaOS</title>
+
+<!-- Google Fonts: Poppins for UI text, JetBrains Mono for numbers/status -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ DESIGN TOKENS (matches index.html / name.html) ============ */
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --text:#F8FAFC;
+    --text-secondary:#94A3B8;
+    --glass:rgba(255,255,255,0.07);
+    --border-glow:rgba(56,189,248,0.35);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+
+  body{
+    min-height:100vh; min-height:100dvh;
+    background:
+      radial-gradient(circle at 25% 15%, #0c1a30 0%, transparent 55%),
+      radial-gradient(circle at 80% 85%, #0a1524 0%, transparent 50%),
+      var(--bg);
+    font-family:'Poppins', sans-serif;
+    color:var(--text);
+    overflow-x:hidden;
+    position:relative;
+    animation:pageFade .6s ease both;
+  }
+  @keyframes pageFade{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ============ BACKGROUND: particles ============ */
+  #particles{ position:fixed; inset:0; width:100%; height:100%; z-index:0; }
+
+  /* ============ BACKGROUND: floating glowing blobs ============ */
+  .bg-orbs{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .orb{
+    position:absolute; border-radius:50%; filter:blur(60px);
+    background:radial-gradient(circle, var(--accent), transparent 70%);
+    animation:floatOrb 18s ease-in-out infinite; will-change:transform;
+  }
+  .orb-1{ width:270px; height:270px; top:-60px; left:-70px; opacity:0.26; animation-duration:19s; }
+  .orb-2{ width:230px; height:230px; bottom:-50px; right:-40px; opacity:0.24; animation-duration:23s; animation-delay:-5s; }
+  .orb-3{ width:190px; height:190px; top:52%; left:66%; opacity:0.14; animation-duration:21s; animation-delay:-10s; }
+  @keyframes floatOrb{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(22px,-26px); } }
+
+  /* ============ BACKGROUND: subtle grid ============ */
+  .grid-overlay{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.045) 1px, transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+    mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+  }
+
+  /* ============ LAYOUT ============ */
+  .stage{
+    position:relative; z-index:1;
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+
+  /* ============ GLASS CARD ============ */
+  .glass-card{
+    width:90%; max-width:420px;
+    border-radius:25px;
+    background:var(--glass);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--border-glow);
+    box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:28px 24px;
+    display:flex; flex-direction:column; gap:16px;
+    animation:cardIn .7s cubic-bezier(.22,.9,.32,1) both;
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(18px) scale(0.97); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* ============ PAGE LABEL (5-tap easter egg) ============ */
+  .page-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:rgba(56,189,248,0.75);
+    cursor:pointer; user-select:none; touch-action:manipulation; width:fit-content;
+  }
+
+  /* ============ INTRO TYPING ============ */
+  .intro-text{
+    font-size:1.05rem; font-weight:500; line-height:1.5;
+    display:flex; flex-direction:column; gap:6px;
+    min-height:70px;
+  }
+  .intro-line{ white-space:pre-wrap; }
+  .caret{
+    display:inline-block; width:6px; height:1em;
+    background:var(--accent); margin-left:2px;
+    animation:blink .9s steps(1) infinite;
+    vertical-align:text-bottom;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .sub-text{
+    font-size:0.82rem; line-height:1.55;
+    color:var(--text-secondary);
+  }
+
+  /* ============ SLIDER BLOCK ============ */
+  .slider-block{ display:flex; flex-direction:column; gap:10px; margin-top:4px; }
+
+  .suspicion-level{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.85rem;
+    color:var(--text);
+    text-align:center;
+  }
+  .suspicion-level span{ color:var(--accent); font-weight:600; }
+
+  .slider-track-wrap{ padding:6px 2px; }
+
+  .suspicion-slider{
+    -webkit-appearance:none; appearance:none;
+    width:100%; height:8px; border-radius:999px;
+    outline:none; cursor:pointer;
+    background:linear-gradient(to right, var(--accent) 0%, var(--accent) 50%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.12) 100%);
+    box-shadow:0 0 14px rgba(56,189,248,0.25);
+    transition:box-shadow .2s ease;
+  }
+  .suspicion-slider::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:22px; height:22px; border-radius:50%;
+    background:var(--text);
+    border:3px solid var(--accent);
+    box-shadow:0 0 10px rgba(56,189,248,0.7);
+    cursor:pointer;
+    transition:transform .15s ease;
+  }
+  .suspicion-slider:active::-webkit-slider-thumb{ transform:scale(1.15); }
+  .suspicion-slider::-moz-range-thumb{
+    width:22px; height:22px; border-radius:50%;
+    background:var(--text);
+    border:3px solid var(--accent);
+    box-shadow:0 0 10px rgba(56,189,248,0.7);
+    cursor:pointer;
+  }
+  .suspicion-slider::-moz-range-track{
+    height:8px; border-radius:999px; background:rgba(255,255,255,0.12);
+  }
+  .suspicion-slider::-moz-range-progress{
+    height:8px; border-radius:999px; background:var(--accent);
+  }
+
+  .slider-labels{
+    display:flex; justify-content:space-between;
+    font-size:0.68rem; color:var(--text-secondary);
+    line-height:1.3;
+  }
+  .slider-labels span{ max-width:44%; }
+
+  .slider-response{
+    display:flex; align-items:center; gap:12px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:16px; padding:12px 14px;
+    margin-top:4px;
+    transition:background .2s ease;
+  }
+  .response-emoji{ font-size:1.6rem; line-height:1; flex-shrink:0; }
+  .response-text{ display:flex; flex-direction:column; gap:2px; }
+  .response-text .r1{ font-size:0.88rem; font-weight:500; }
+  .response-text .r2{ font-size:0.74rem; color:var(--text-secondary); }
+
+  .achievement{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.74rem; text-align:center; line-height:1.5;
+    color:var(--accent);
+    background:rgba(56,189,248,0.08);
+    border:1px solid rgba(56,189,248,0.25);
+    border-radius:12px; padding:8px 10px;
+    animation:achievementPop .4s ease both;
+  }
+  @keyframes achievementPop{ from{ opacity:0; transform:scale(0.9); } to{ opacity:1; transform:scale(1); } }
+
+  /* ============ ANALYSIS BLOCK ============ */
+  .analysis-block{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.8rem; line-height:1.6;
+    display:flex; flex-direction:column; gap:10px;
+    border-top:1px solid rgba(255,255,255,0.08);
+    padding-top:14px; margin-top:2px;
+  }
+  .analysis-line{ color:rgba(248,250,252,0.75); white-space:pre-wrap; }
+
+  .result-row{ display:flex; flex-direction:column; gap:4px; }
+  .result-label{ display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text); }
+  .result-bar-track{
+    width:100%; height:6px; border-radius:999px;
+    background:rgba(255,255,255,0.1); overflow:hidden;
+  }
+  .result-bar-fill{
+    height:100%; width:0%; border-radius:999px;
+    background:linear-gradient(90deg, var(--accent), #7dd3fc);
+    box-shadow:0 0 8px rgba(56,189,248,0.5);
+    transition:width 0.9s cubic-bezier(.22,.9,.32,1);
+  }
+
+  .comfort-text{
+    font-family:'Poppins', sans-serif;
+    font-size:0.88rem; line-height:1.6;
+    color:var(--text);
+    display:flex; flex-direction:column; gap:4px;
+    margin-top:4px;
+  }
+
+  /* ============ CONTINUE BUTTON ============ */
+  .cta-wrap{
+    display:flex; justify-content:center; margin-top:6px;
+    opacity:0; transform:translateY(8px) scale(0.96);
+    transition:opacity .5s ease, transform .5s ease;
+    pointer-events:none;
+  }
+  .cta-wrap.show{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .cta-btn{
+    font-family:'Poppins', sans-serif;
+    font-weight:600; font-size:0.94rem;
+    color:#04121c;
+    background:linear-gradient(135deg, #38BDF8, #7dd3fc);
+    border:none; padding:14px 26px; border-radius:999px;
+    cursor:pointer; touch-action:manipulation;
+    box-shadow:0 8px 24px rgba(56,189,248,0.35);
+    transition:transform .2s ease, box-shadow .3s ease;
+  }
+  .cta-btn:hover{ box-shadow:0 10px 30px rgba(56,189,248,0.5); }
+  .cta-btn:active{ transform:scale(0.94); }
+
+  /* ============ TOAST ============ */
+  .toast{
+    position:fixed; left:50%; bottom:32px;
+    transform:translate(-50%, 16px);
+    background:rgba(13,20,32,0.92);
+    border:1px solid rgba(56,189,248,0.3);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    font-size:0.82rem; line-height:1.4;
+    padding:12px 18px; border-radius:14px;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease, transform .3s ease;
+    z-index:10; max-width:86%; text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    white-space:pre-wrap;
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce){
+    .orb{ animation:none; }
+    .glass-card{ animation:none; }
+    .caret{ animation:none; opacity:1; }
+    body{ animation:none; }
+    .result-bar-fill{ transition:none; }
+  }
+</style>
+</head>
+<body>
+
+  <canvas id="particles"></canvas>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
+  <main class="stage">
+    <section class="glass-card" id="card">
+
+      <!-- clicking this 5 times reveals a secret message -->
+      <div class="page-label" id="pageTitle">🔍 Suspicion Analysis</div>
+
+      <!-- typed opening lines -->
+      <div class="intro-text" id="introText"></div>
+      <p class="sub-text">Because honestly, opening a random website made by someone from class is definitely unexpected 😭</p>
+
+      <!-- interactive suspicion slider -->
+      <div class="slider-block" id="sliderBlock">
+        <div class="suspicion-level">Suspicion Level: <span id="levelValue">50</span>%</div>
+
+        <div class="slider-track-wrap">
+          <input type="range" min="0" max="100" value="50" class="suspicion-slider" id="suspicionSlider">
+        </div>
+
+        <div class="slider-labels">
+          <span>🙂 Seems normal</span>
+          <span>What is happening? 💀</span>
+        </div>
+
+        <div class="slider-response">
+          <span class="response-emoji" id="responseEmoji">😂</span>
+          <div class="response-text">
+            <div class="r1" id="responseLine1">Fair enough 😭</div>
+            <div class="r2" id="responseLine2">A random website deserves a little suspicion</div>
+          </div>
+        </div>
+
+        <div class="achievement" id="achievement" hidden></div>
+      </div>
+
+      <!-- fake analysis, revealed after the slider is released -->
+      <div class="analysis-block" id="analysisBlock" hidden></div>
+
+      <!-- continue button, revealed after the comfort message -->
+      <div class="cta-wrap" id="ctaWrap">
+        <button class="cta-btn" id="ctaBtn">Okay, explain yourself 😂 →</button>
+      </div>
+
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ===================== PARTICLE BACKGROUND ===================== */
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+  function makeParticles(count){
+    const arr = [];
+    for(let i = 0; i < count; i++){
+      arr.push({
+        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+        r: Math.random()*1.6 + 0.6,
+        vx: (Math.random()-0.5)*0.15, vy: (Math.random()-0.5)*0.15,
+        o: Math.random()*0.5 + 0.15
+      });
+    }
+    return arr;
+  }
+
+  function drawParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(148,211,248,${p.o})`;
+      ctx.fill();
+    });
+  }
+
+  function stepParticles(){
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = canvas.width; if(p.x > canvas.width) p.x = 0;
+      if(p.y < 0) p.y = canvas.height; if(p.y > canvas.height) p.y = 0;
+    });
+  }
+
+  function animateParticles(){
+    stepParticles(); drawParticles();
+    if(!reduceMotion) requestAnimationFrame(animateParticles);
+  }
+
+  resizeCanvas();
+  particles = makeParticles(42);
+  drawParticles();
+  if(!reduceMotion){
+    requestAnimationFrame(animateParticles);
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  /* ===================== TOAST HELPER ===================== */
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg, duration = 2600){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), duration);
+  }
+
+  /* ===================== TYPING ENGINE ===================== */
+  async function typeInto(container, text, { speed = 22, className = '' } = {}){
+    const line = document.createElement('div');
+    line.className = className;
+    container.appendChild(line);
+
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    line.appendChild(caret);
+
+    if(reduceMotion){
+      caret.remove();
+      line.textContent = text;
+      return line;
+    }
+    for(let i = 0; i < text.length; i++){
+      caret.insertAdjacentText('beforebegin', text[i]);
+      await sleep(speed);
+    }
+    caret.remove();
+    return line;
+  }
+
+  /* ===================== OPENING SEQUENCE ===================== */
+  const introText = document.getElementById('introText');
+  async function runIntro(){
+    await sleep(300);
+    await typeInto(introText, 'Okay wait...', { speed: 24, className: 'intro-line' });
+    await sleep(500);
+    await typeInto(introText, 'Quick check before we continue 👀', { speed: 20, className: 'intro-line' });
+    await sleep(500);
+    await typeInto(introText, 'How suspicious are you feeling right now?', { speed: 18, className: 'intro-line' });
+  }
+  window.addEventListener('load', runIntro);
+
+  /* ===================== PAGE TITLE 5-TAP EASTER EGG ===================== */
+  const pageTitle = document.getElementById('pageTitle');
+  let titleTaps = 0;
+  let lastTitleTap = 0;
+  pageTitle.addEventListener('click', ()=>{
+    const now = Date.now();
+    if(now - lastTitleTap > 1500) titleTaps = 0;
+    titleTaps++;
+    lastTitleTap = now;
+    if(titleTaps >= 5){
+      showToast('Secret message:\nYes, Dharma also thought this was a risky idea 😭', 3200);
+      titleTaps = 0;
+    }
+  });
+
+  /* ===================== SUSPICION SLIDER ===================== */
+  const slider = document.getElementById('suspicionSlider');
+  const levelValue = document.getElementById('levelValue');
+  const responseEmoji = document.getElementById('responseEmoji');
+  const responseLine1 = document.getElementById('responseLine1');
+  const responseLine2 = document.getElementById('responseLine2');
+  const achievement = document.getElementById('achievement');
+
+  function getResponse(value){
+    if(value <= 25){
+      return { emoji: '😎', line1: 'Wow, surprisingly calm 😂', line2: "Didn't expect this level of trust" };
+    } else if(value <= 50){
+      return { emoji: '😂', line1: 'Fair enough 😭', line2: 'A random website deserves a little suspicion' };
+    } else if(value <= 75){
+      return { emoji: '🤝', line1: 'Understandable 💀', line2: 'Even the creator questioned this idea' };
+    } else {
+      return { emoji: '💀', line1: 'Maximum suspicion detected 🚨', line2: 'Honestly... valid reaction 😭' };
+    }
+  }
+
+  function paintSliderTrack(value){
+    slider.style.background =
+      `linear-gradient(to right, var(--accent) 0%, var(--accent) ${value}%, rgba(255,255,255,0.12) ${value}%, rgba(255,255,255,0.12) 100%)`;
+  }
+
+  let lastValue = 50;
+  let hasInteracted = false;
+  let analysisTimer = null;
+
+  function updateSliderUI(value){
+    levelValue.textContent = value;
+    paintSliderTrack(value);
+    const r = getResponse(value);
+    responseEmoji.textContent = r.emoji;
+    responseLine1.textContent = r.line1;
+    responseLine2.textContent = r.line2;
+
+    if(value === 100 && lastValue !== 100){
+      achievement.hidden = false;
+      achievement.textContent = 'Achievement unlocked:\nTrust issues activated 💀';
+    } else if(value === 0 && lastValue !== 0){
+      achievement.hidden = false;
+      achievement.textContent = 'Achievement unlocked:\nFearless explorer 😂';
+    } else if(value !== 0 && value !== 100){
+      achievement.hidden = true;
+    }
+    lastValue = value;
+  }
+
+  paintSliderTrack(50);
+
+  slider.addEventListener('input', ()=>{
+    hasInteracted = true;
+    updateSliderUI(Number(slider.value));
+
+    // debounce: treat a short pause in movement as "stopped"
+    clearTimeout(analysisTimer);
+    analysisTimer = setTimeout(()=>{ if(hasInteracted) runAnalysis(); }, 700);
+  });
+
+  slider.addEventListener('change', ()=>{
+    if(hasInteracted){
+      clearTimeout(analysisTimer);
+      runAnalysis();
+    }
+  });
+
+  /* ===================== FAKE ANALYSIS SEQUENCE ===================== */
+  const analysisBlock = document.getElementById('analysisBlock');
+  const ctaWrap = document.getElementById('ctaWrap');
+  let analysisRunning = false;
+
+  function addResultRow(label, percent){
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    row.innerHTML = `
+      <div class="result-label"><span>${label}</span></div>
+      <div class="result-bar-track"><div class="result-bar-fill"></div></div>
+    `;
+    analysisBlock.appendChild(row);
+    const fill = row.querySelector('.result-bar-fill');
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{ fill.style.width = percent + '%'; });
+    });
+  }
+
+  async function runAnalysis(){
+    if(analysisRunning) return;
+    analysisRunning = true;
+
+    analysisBlock.hidden = false;
+    analysisBlock.innerHTML = '';
+    ctaWrap.classList.remove('show');
+
+    await typeInto(analysisBlock, 'Analyzing reaction...', { speed: 20, className: 'analysis-line' });
+    await sleep(500);
+    await typeInto(analysisBlock, 'Loading...', { speed: 20, className: 'analysis-line' });
+    await sleep(700);
+
+    addResultRow('Confusion: Normal ✔', 45);
+    await sleep(200);
+    addResultRow('Concern: Understandable ✔', 60);
+    await sleep(200);
+    addResultRow('Danger Level: 0% ✔', 0);
+    await sleep(200);
+    addResultRow('Website weirdness: Maybe 70% 😭', 70);
+
+    await sleep(1100);
+
+    const comfort = document.createElement('div');
+    comfort.className = 'comfort-text';
+    analysisBlock.appendChild(comfort);
+    await typeInto(comfort, "Don't worry...", { speed: 22 });
+    await sleep(450);
+    await typeInto(comfort, 'This isn\u2019t some dramatic movie scene.', { speed: 18 });
+    await sleep(450);
+    await typeInto(comfort, 'Just someone trying a different way to start a conversation :)', { speed: 16 });
+
+    await sleep(500);
+    ctaWrap.classList.add('show');
+    analysisRunning = false;
+  }
+
+  /* ===================== CONTINUE BUTTON ===================== */
+  document.getElementById('ctaBtn').addEventListener('click', ()=>{
+    window.location.href = 'terms.html';
+  });
+
+})();
+</script>
+</body>
+</html>

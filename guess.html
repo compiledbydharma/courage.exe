@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess The Reason</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --success:#22C55E;
+    --warning:#FACC15;
+    --wrong:#EF4444;
+    --text:#F8FAFC;
+    --text-secondary:#94A3B8;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html, body{
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    overflow-x:hidden;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    padding:24px 0;
+  }
+
+  /* ---------------- BACKGROUND ---------------- */
+
+  .bg-gradient{
+    position:fixed;
+    inset:-10%;
+    width:120%;
+    height:120%;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(56,189,248,0.20), transparent 45%),
+      radial-gradient(circle at 80% 75%, rgba(56,189,248,0.14), transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(127,92,255,0.08), transparent 60%),
+      var(--bg);
+    background-size:220% 220%, 220% 220%, 200% 200%, auto;
+    z-index:0;
+    animation:gradientPan 22s ease-in-out infinite alternate;
+  }
+
+  @keyframes gradientPan{
+    0%{ background-position: 0% 0%, 100% 100%, 40% 60%, 0 0; }
+    50%{ background-position: 35% 45%, 65% 60%, 60% 40%, 0 0; }
+    100%{ background-position: 15% 30%, 85% 80%, 50% 50%, 0 0; }
+  }
+
+  .glow-circle{
+    position:fixed;
+    border-radius:50%;
+    background:var(--accent);
+    filter:blur(80px);
+    z-index:0;
+    pointer-events:none;
+    will-change:transform, opacity;
+  }
+
+  .glow-circle.one{
+    width:260px; height:260px; top:-60px; left:-60px;
+    animation:driftOne 17s ease-in-out infinite;
+  }
+  .glow-circle.two{
+    width:320px; height:320px; bottom:-100px; right:-80px;
+    animation:driftTwo 21s ease-in-out infinite;
+  }
+  .glow-circle.three{
+    width:200px; height:200px; top:45%; left:60%;
+    background:#7f5cff;
+    animation:driftThree 26s ease-in-out infinite;
+  }
+
+  @keyframes driftOne{
+    0%{ transform:translate(0,0) scale(1); opacity:0.16; }
+    50%{ transform:translate(50px,70px) scale(1.2); opacity:0.28; }
+    100%{ transform:translate(0,0) scale(1); opacity:0.16; }
+  }
+
+  @keyframes driftTwo{
+    0%{ transform:translate(0,0) scale(1); opacity:0.16; }
+    50%{ transform:translate(-60px,-50px) scale(1.15); opacity:0.26; }
+    100%{ transform:translate(0,0) scale(1); opacity:0.16; }
+  }
+
+  @keyframes driftThree{
+    0%{ transform:translate(0,0) scale(0.9); opacity:0.10; }
+    50%{ transform:translate(-40px,40px) scale(1.1); opacity:0.20; }
+    100%{ transform:translate(0,0) scale(0.9); opacity:0.10; }
+  }
+
+  #particles{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  .particle{
+    position:absolute;
+    background:var(--accent);
+    border-radius:50%;
+    box-shadow:0 0 6px 1px rgba(56,189,248,0.7);
+    animation-name:floatUp;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+  }
+
+  @keyframes floatUp{
+    0%{ transform:translate(0,0) scale(0.6); opacity:0; }
+    12%{ opacity:var(--maxOpacity, 0.7); }
+    50%{ transform:translate(var(--sway, 20px), -55vh) scale(1); }
+    88%{ opacity:var(--maxOpacity, 0.7); }
+    100%{ transform:translate(calc(var(--sway, 20px) * 1.7), -115vh) scale(0.6); opacity:0; }
+  }
+
+  /* ---------------- CARD ---------------- */
+
+  .card{
+    position:relative;
+    z-index:1;
+    width:90%;
+    max-width:420px;
+    background:rgba(255,255,255,0.07);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border-radius:25px;
+    border:1px solid rgba(56,189,248,0.35);
+    box-shadow:0 8px 40px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:32px 24px;
+    opacity:0;
+    transform:translateY(30px);
+    animation:cardIn 0.8s ease forwards 0.15s;
+  }
+
+  @keyframes cardIn{
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  body.page-fade{ animation:pageFade 0.6s ease; }
+  @keyframes pageFade{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ---------------- SCORE + TITLE ---------------- */
+
+  .score-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:18px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--text-secondary);
+    letter-spacing:0.3px;
+  }
+
+  .score-value{
+    color:var(--accent);
+    font-weight:600;
+    transition:color 0.3s ease;
+  }
+
+  .score-value.win{ color:var(--success); }
+  .score-value.lose{ color:var(--wrong); }
+
+  h1.title{
+    font-size:15px;
+    font-weight:600;
+    text-align:center;
+    letter-spacing:0.5px;
+    color:var(--text-secondary);
+    text-transform:uppercase;
+    margin-bottom:22px;
+    cursor:pointer;
+    user-select:none;
+  }
+
+  /* ---------------- TYPING TEXT ---------------- */
+
+  .typing-block{
+    min-height:112px;
+    margin-bottom:6px;
+  }
+
+  .typing-line{
+    font-size:19px;
+    font-weight:500;
+    line-height:1.5;
+    min-height:1.5em;
+  }
+
+  .typing-line .cursor{
+    display:inline-block;
+    width:2px;
+    height:1em;
+    background:var(--accent);
+    margin-left:2px;
+    vertical-align:-2px;
+    animation:blink 0.9s step-end infinite;
+  }
+
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  .subtitle{
+    font-size:13px;
+    color:var(--text-secondary);
+    margin-top:10px;
+    opacity:0;
+    transition:opacity 0.6s ease;
+  }
+
+  .subtitle.show{ opacity:1; }
+
+  /* ---------------- OPTIONS ---------------- */
+
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    margin-top:22px;
+  }
+
+  .option{
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:16px;
+    padding:15px 16px;
+    font-size:14.5px;
+    font-weight:400;
+    color:var(--text);
+    text-align:left;
+    cursor:pointer;
+    transition:transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    opacity:0;
+    transform:translateY(14px);
+  }
+
+  .option.reveal{
+    animation:optIn 0.5s ease forwards;
+  }
+
+  @keyframes optIn{
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .option:not(.disabled):active{
+    transform:translateY(2px) scale(0.98);
+  }
+
+  .option:not(.disabled):hover{
+    border-color:rgba(56,189,248,0.5);
+    background:rgba(56,189,248,0.08);
+    transform:translateY(-2px);
+  }
+
+  .option.disabled{
+    cursor:default;
+    opacity:0.45;
+  }
+
+  .option.selected-correct{
+    border-color:var(--success);
+    background:rgba(34,197,94,0.12);
+    box-shadow:0 0 18px rgba(34,197,94,0.25);
+    opacity:1;
+  }
+
+  .option.selected-wrong{
+    border-color:var(--wrong);
+    background:rgba(239,68,68,0.12);
+    box-shadow:0 0 18px rgba(239,68,68,0.2);
+    opacity:1;
+  }
+
+  /* ---------------- REACTION / RESULT ---------------- */
+
+  .reaction-block{
+    margin-top:20px;
+    min-height:20px;
+  }
+
+  .reaction-text{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:var(--accent);
+    letter-spacing:0.3px;
+  }
+
+  .result-block{
+    margin-top:14px;
+    padding:16px;
+    border-radius:16px;
+    background:rgba(255,255,255,0.04);
+    border:1px solid rgba(255,255,255,0.08);
+    display:none;
+  }
+
+  .result-block.show{ display:block; animation:optIn 0.4s ease forwards; }
+
+  .result-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:8px;
+    display:inline-block;
+    padding:4px 10px;
+    border-radius:8px;
+  }
+
+  .result-tag.wrong{ color:var(--wrong); background:rgba(239,68,68,0.12); }
+  .result-tag.correct{ color:var(--success); background:rgba(34,197,94,0.12); }
+
+  .result-line{
+    font-size:13.5px;
+    color:var(--text-secondary);
+    line-height:1.6;
+    margin-top:4px;
+  }
+
+  /* ---------------- ACHIEVEMENT ---------------- */
+
+  .achievement{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:14px;
+    background:rgba(250,204,21,0.08);
+    border:1px solid rgba(250,204,21,0.3);
+    font-size:12.5px;
+    color:var(--warning);
+    display:none;
+  }
+
+  .achievement.show{ display:block; animation:optIn 0.4s ease forwards; }
+
+  /* ---------------- SECRET ---------------- */
+
+  .secret{
+    margin-top:10px;
+    font-size:11.5px;
+    font-family:'JetBrains Mono', monospace;
+    color:var(--text-secondary);
+    text-align:center;
+    display:none;
+  }
+
+  .secret.show{ display:block; animation:optIn 0.4s ease forwards; }
+
+  /* ---------------- CONTINUE BUTTON ---------------- */
+
+  .continue-btn{
+    display:none;
+    width:100%;
+    margin-top:22px;
+    padding:16px;
+    border:none;
+    border-radius:999px;
+    background:linear-gradient(135deg, #38BDF8, #7DD3FC);
+    color:#04141F;
+    font-family:'Poppins', sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    box-shadow:0 0 25px rgba(56,189,248,0.4);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .continue-btn.show{
+    display:block;
+    animation:btnUnlock 0.6s ease;
+  }
+
+  @keyframes btnUnlock{
+    0%{ transform:scale(0.85); opacity:0; }
+    60%{ transform:scale(1.04); opacity:1; }
+    100%{ transform:scale(1); }
+  }
+
+  .continue-btn:active{ transform:scale(0.97); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  }
+</style>
+</head>
+<body class="page-fade">
+
+<div class="bg-gradient"></div>
+<div class="glow-circle one"></div>
+<div class="glow-circle two"></div>
+<div class="glow-circle three"></div>
+<div id="particles"></div>
+
+<div class="card">
+
+  <div class="score-row">
+    <span>GUESS ACCURACY</span>
+    <span class="score-value" id="scoreValue">0%</span>
+  </div>
+
+  <h1 class="title" id="secretTitle">Why Does This Exist?</h1>
+
+  <div class="typing-block">
+    <div class="typing-line" id="typingLine"><span class="cursor"></span></div>
+    <div class="subtitle" id="subtitle">Choose wisely... totally not judging your answer 😭</div>
+  </div>
+
+  <div class="options" id="options">
+    <button class="option" data-option="A">Someone had too much free time 💀</button>
+    <button class="option" data-option="B">This is a secret school project 📚</button>
+    <button class="option" data-option="C">Someone lost a bet 😭</button>
+    <button class="option" data-option="D">Starting a conversation was somehow harder than making a website 😂</button>
+  </div>
+
+  <div class="reaction-block" id="reactionBlock"></div>
+
+  <div class="result-block" id="resultBlock"></div>
+
+  <div class="achievement" id="achievement"></div>
+
+  <div class="secret" id="secretFact">Secret fact: The creator also questioned this idea multiple times 💀</div>
+
+  <button class="continue-btn" id="continueBtn">Meet the person behind this chaos 😂 →</button>
+
+</div>
+
+<script>
+/* ============================================================
+   GUESS.HAI  —  Page 5 of the experience
+   Interactive "why does this exist" quiz
+   ============================================================ */
+
+// ---------- Particle background ----------
+(function createParticles(){
+  const container = document.getElementById('particles');
+  const count = 42;
+  for(let i=0;i<count;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+
+    const size = 2 + Math.random()*3.5;
+    const sway = (Math.random()*80 - 40).toFixed(0) + 'px';
+    const maxOpacity = (0.35 + Math.random()*0.45).toFixed(2);
+    const duration = 9 + Math.random()*14;
+    const delay = Math.random()*duration;
+
+    p.style.width = size+'px';
+    p.style.height = size+'px';
+    p.style.left = Math.random()*100+'vw';
+    p.style.bottom = (Math.random()*20 - 20)+'px';
+    p.style.setProperty('--sway', sway);
+    p.style.setProperty('--maxOpacity', maxOpacity);
+    p.style.animationDuration = duration+'s';
+    p.style.animationDelay = '-' + delay + 's';
+
+    container.appendChild(p);
+  }
+})();
+
+// ---------- Typing animation ----------
+const typingLine = document.getElementById('typingLine');
+const subtitle = document.getElementById('subtitle');
+const optionsWrap = document.getElementById('options');
+const optionButtons = Array.from(document.querySelectorAll('.option'));
+
+const typingSequence = [
+  { text: "Okay...", pause: 700 },
+  { text: "Important question time 👀", pause: 900 },
+  { text: "Why do you think this website exists?", pause: 500 }
+];
+
+function typeText(str, cb){
+  let i = 0;
+  typingLine.innerHTML = '';
+  const cursor = document.createElement('span');
+  cursor.className = 'cursor';
+
+  const textNode = document.createElement('span');
+  typingLine.appendChild(textNode);
+  typingLine.appendChild(cursor);
+
+  const interval = setInterval(()=>{
+    textNode.textContent += str.charAt(i);
+    i++;
+    if(i >= str.length){
+      clearInterval(interval);
+      if(cb) setTimeout(cb, 500);
+    }
+  }, 32);
+}
+
+function runTypingSequence(index){
+  if(index >= typingSequence.length){
+    // done typing, reveal subtitle and options
+    subtitle.classList.add('show');
+    revealOptions();
+    return;
+  }
+  const step = typingSequence[index];
+  typeText(step.text, ()=>{
+    setTimeout(()=> runTypingSequence(index+1), step.pause);
+  });
+}
+
+function revealOptions(){
+  optionButtons.forEach((btn, idx)=>{
+    setTimeout(()=>{
+      btn.classList.add('reveal');
+    }, idx*120);
+  });
+}
+
+// kick things off
+setTimeout(()=> runTypingSequence(0), 400);
+
+// ---------- Score system ----------
+const scoreValue = document.getElementById('scoreValue');
+const wrongScores = [12, 24, 31];
+let wrongAttempts = 0;
+let correctChosenFirst = false;
+let answered = false;
+
+function animateScoreTo(target){
+  let current = parseInt(scoreValue.textContent) || 0;
+  const step = target > current ? 1 : -1;
+  const timer = setInterval(()=>{
+    current += step;
+    scoreValue.textContent = current + '%';
+    if(current === target) clearInterval(timer);
+  }, 12);
+}
+
+// ---------- Reaction meter ----------
+const reactionBlock = document.getElementById('reactionBlock');
+
+function showReaction(cb){
+  reactionBlock.innerHTML = '<span class="reaction-text">Analyzing choice...</span>';
+  setTimeout(()=>{
+    reactionBlock.innerHTML = '<span class="reaction-text">Processing...</span>';
+    setTimeout(()=>{
+      reactionBlock.innerHTML = '';
+      cb();
+    }, 600);
+  }, 550);
+}
+
+// ---------- Answer content ----------
+const responses = {
+  A: {
+    correct:false,
+    lines:["Honestly... understandable guess 💀","But no, even free time has limits 😭"]
+  },
+  B: {
+    correct:false,
+    lines:["Imagine submitting this as homework 😂","Teacher would have questions..."]
+  },
+  C: {
+    correct:false,
+    lines:["Thankfully no one forced this embarrassment 😭","This was a voluntary bad decision"]
+  },
+  D: {
+    correct:true,
+    lines:["Unfortunately...","You found the real reason 😂","Conversation skills: Loading...","Website making skills: Somehow available"]
+  }
+};
+
+const resultBlock = document.getElementById('resultBlock');
+const achievementBlock = document.getElementById('achievement');
+const secretFact = document.getElementById('secretFact');
+const continueBtn = document.getElementById('continueBtn');
+
+function renderResult(option){
+  const data = responses[option];
+  resultBlock.innerHTML = '';
+
+  const tag = document.createElement('span');
+  tag.className = 'result-tag ' + (data.correct ? 'correct' : 'wrong');
+  tag.textContent = data.correct ? 'Correct ✔' : 'Incorrect ❌';
+  resultBlock.appendChild(tag);
+
+  data.lines.forEach(line=>{
+    const p = document.createElement('div');
+    p.className = 'result-line';
+    p.textContent = line;
+    resultBlock.appendChild(p);
+  });
+
+  resultBlock.classList.add('show');
+}
+
+function handleOptionClick(e){
+  if(answered) return;
+  const btn = e.currentTarget;
+  const option = btn.dataset.option;
+  const data = responses[option];
+
+  answered = true;
+
+  // disable + style all options
+  optionButtons.forEach(b=>{
+    b.classList.add('disabled');
+    b.disabled = true;
+  });
+
+  btn.classList.add(data.correct ? 'selected-correct' : 'selected-wrong');
+
+  showReaction(()=>{
+    renderResult(option);
+
+    if(data.correct){
+      if(wrongAttempts === 0){
+        correctChosenFirst = true;
+      }
+      animateScoreTo(100);
+      scoreValue.classList.add('win');
+
+      setTimeout(()=>{
+        continueBtn.classList.add('show');
+      }, 600);
+
+      // easter eggs
+      if(correctChosenFirst){
+        achievementBlock.innerHTML = 'First try?? Suspiciously accurate 😂';
+        achievementBlock.classList.add('show');
+      } else if(wrongAttempts >= 3){
+        achievementBlock.innerHTML = 'Achievement unlocked: Professional investigator 🕵️😭';
+        achievementBlock.classList.add('show');
+      }
+    } else {
+      wrongAttempts++;
+      const randomScore = wrongScores[Math.floor(Math.random()*wrongScores.length)];
+      animateScoreTo(randomScore);
+      scoreValue.classList.add('lose');
+
+      // re-enable options after a short delay so she can try again
+      setTimeout(()=>{
+        optionButtons.forEach(b=>{
+          if(!b.classList.contains('selected-wrong')){
+            b.classList.remove('disabled');
+            b.disabled = false;
+          }
+        });
+        // reset styling on this wrong button so it can be tried differently,
+        // but keep others available
+        answered = false;
+        scoreValue.classList.remove('lose');
+        resultBlock.classList.remove('show');
+      }, 1600);
+    }
+  });
+}
+
+optionButtons.forEach(btn=>{
+  btn.addEventListener('click', handleOptionClick);
+});
+
+// ---------- Continue button ----------
+continueBtn.addEventListener('click', ()=>{
+  document.body.style.transition = 'opacity 0.5s ease';
+  document.body.style.opacity = '0';
+  setTimeout(()=>{
+    window.location.href = 'character.html';
+  }, 480);
+});
+
+// ---------- Secret: click title 5 times ----------
+const secretTitle = document.getElementById('secretTitle');
+let titleClicks = 0;
+
+secretTitle.addEventListener('click', ()=>{
+  titleClicks++;
+  if(titleClicks === 5){
+    secretFact.classList.add('show');
+  }
+});
+</script>
+
+</body>
+</html>

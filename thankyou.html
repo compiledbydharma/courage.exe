@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thank You :)</title>
+
+<!-- Google Fonts: Poppins for body copy, JetBrains Mono for system/credits text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ===========================================================
+     ROOT / RESET
+  =========================================================== */
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --text:#F8FAFC;
+    --muted:#94A3B8;
+    --success:#22C55E;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  html,body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    min-height:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    position:relative;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+
+  /* ===========================================================
+     AMBIENT BACKGROUND — particles + soft glowing circles
+  =========================================================== */
+  #bg-canvas{
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+  }
+
+  .glow{
+    position:fixed;
+    border-radius:50%;
+    filter:blur(70px);
+    z-index:0;
+    pointer-events:none;
+    background:radial-gradient(circle at 30% 30%, rgba(56,189,248,.9), rgba(56,189,248,0) 70%);
+  }
+  .glow-1{ width:340px; height:340px; top:-90px; left:-90px; opacity:.30; animation:float1 16s ease-in-out infinite; }
+  .glow-2{ width:300px; height:300px; bottom:-80px; right:-70px; opacity:.28; animation:float2 20s ease-in-out infinite; }
+  .glow-3{ width:220px; height:220px; top:45%; left:65%; opacity:.16; animation:float3 22s ease-in-out infinite; }
+
+  @keyframes float1{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(30px,40px); } }
+  @keyframes float2{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-25px,-30px); } }
+  @keyframes float3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-20px,20px) scale(1.12); } }
+
+  /* slow gradient breathing behind everything */
+  body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:0;
+    background:radial-gradient(ellipse at 50% 20%, rgba(56,189,248,.08), transparent 60%);
+    animation:breathe 10s ease-in-out infinite;
+    pointer-events:none;
+  }
+  @keyframes breathe{ 0%,100%{ opacity:.6; } 50%{ opacity:1; } }
+
+  /* ===========================================================
+     STAGE / CARD
+  =========================================================== */
+  .stage{
+    position:relative;
+    z-index:1;
+    width:100%;
+    display:flex;
+    justify-content:center;
+    padding:48px 16px 90px;
+  }
+
+  .card{
+    width:90%;
+    max-width:430px;
+    height:fit-content;
+    background:rgba(255,255,255,.07);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(56,189,248,.28);
+    border-radius:25px;
+    box-shadow:0 8px 40px rgba(0,0,0,.55), 0 0 60px rgba(56,189,248,.06);
+    padding:32px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+    transition:opacity .6s ease, filter .6s ease;
+  }
+
+  body.exited .card{ opacity:.35; filter:blur(2px); }
+
+  /* ===========================================================
+     BOOT SEQUENCE
+  =========================================================== */
+  .boot{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.85rem;
+    color:var(--accent);
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    transition:opacity .5s ease;
+  }
+  .boot.hide{ opacity:0; }
+
+  .boot-row .cursor{
+    display:inline-block;
+    width:7px;
+    background:var(--accent);
+    margin-left:2px;
+    animation:blink 1s steps(1) infinite;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ===========================================================
+     MAIN MESSAGE
+  =========================================================== */
+  .message{ display:flex; flex-direction:column; gap:20px; }
+
+  .msg-part{ display:flex; flex-direction:column; gap:6px; }
+
+  .msg-line{
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .6s ease, transform .6s ease;
+    font-size:1rem;
+    line-height:1.55;
+  }
+  .msg-line.visible{ opacity:1; transform:translateY(0); }
+
+  /* ===========================================================
+     CREDITS
+  =========================================================== */
+  .credits-wrap{ opacity:0; transition:opacity .7s ease; display:flex; flex-direction:column; gap:10px; }
+  .credits-wrap.visible{ opacity:1; }
+
+  .credits-eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.68rem;
+    letter-spacing:.2em;
+    color:var(--muted);
+    text-transform:uppercase;
+    text-align:center;
+  }
+
+  .credits-window{
+    height:190px;
+    overflow:hidden;
+    position:relative;
+    -webkit-mask-image:linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+    mask-image:linear-gradient(to bottom, transparent, black 18%, black 82%, transparent);
+  }
+
+  .credits-scroll{
+    position:absolute;
+    left:0; right:0; top:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:22px;
+    text-align:center;
+    transform:translateY(100%);
+    animation:creditRoll 11s linear forwards;
+  }
+  @keyframes creditRoll{ to{ transform:translateY(-100%); } }
+
+  .credit-block{ display:flex; flex-direction:column; gap:4px; }
+  .credit-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.68rem;
+    letter-spacing:.18em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+  .credit-value{ font-size:1rem; font-weight:500; }
+
+  /* ===========================================================
+     MISSION REPORT
+  =========================================================== */
+  .mission{
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity .6s ease, transform .6s ease;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .mission.visible{ opacity:1; transform:translateY(0); }
+
+  .mission-title{
+    font-family:'JetBrains Mono', monospace;
+    font-size:.75rem;
+    letter-spacing:.2em;
+    color:var(--accent);
+    text-transform:uppercase;
+  }
+
+  .mission-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    font-size:.92rem;
+    color:var(--text);
+    opacity:0;
+    transform:translateX(-6px);
+    transition:opacity .5s ease, transform .5s ease;
+    border-bottom:1px solid rgba(148,163,184,.12);
+    padding-bottom:10px;
+  }
+  .mission-row:last-child{ border-bottom:none; padding-bottom:0; }
+  .mission-row.visible{ opacity:1; transform:translateX(0); }
+
+  .status{ font-family:'JetBrains Mono', monospace; font-size:.85rem; white-space:nowrap; }
+  .status.done{ color:var(--success); }
+  .status.pending{ color:var(--muted); font-style:italic; }
+
+  /* ===========================================================
+     ACTIONS
+  =========================================================== */
+  .actions{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    opacity:0;
+    transform:translateY(10px);
+    transition:opacity .6s ease, transform .6s ease;
+  }
+  .actions.visible{ opacity:1; transform:translateY(0); }
+
+  button{
+    font-family:'Poppins', sans-serif;
+    font-size:.95rem;
+    font-weight:500;
+    padding:14px 18px;
+    border-radius:14px;
+    border:1px solid rgba(56,189,248,.4);
+    background:rgba(56,189,248,.08);
+    color:var(--text);
+    cursor:pointer;
+    transition:transform .2s ease, background .2s ease, box-shadow .2s ease;
+  }
+  button:hover{ background:rgba(56,189,248,.18); transform:translateY(-2px); box-shadow:0 6px 20px rgba(56,189,248,.15); }
+  button:active{ transform:translateY(0); }
+  button:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  #exitBtn{
+    background:linear-gradient(135deg, rgba(56,189,248,.9), rgba(34,197,94,.55));
+    border:none;
+    color:#04121c;
+    font-weight:600;
+  }
+  #exitBtn:hover{ filter:brightness(1.05); }
+
+  .exit-note{
+    opacity:0;
+    transition:opacity .8s ease;
+    text-align:center;
+    font-size:.95rem;
+    color:var(--accent);
+  }
+  .exit-note.visible{ opacity:1; }
+
+  /* ===========================================================
+     HIDDEN MESSAGE (appears after 5s)
+  =========================================================== */
+  .hidden-msg{
+    opacity:0;
+    transition:opacity 1s ease;
+    font-family:'JetBrains Mono', monospace;
+    font-size:.8rem;
+    color:var(--muted);
+    text-align:center;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .hidden-msg.visible{ opacity:1; }
+
+  /* ===========================================================
+     TOAST (easter eggs)
+  =========================================================== */
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom:26px;
+    transform:translate(-50%,20px);
+    max-width:90%;
+    width:360px;
+    background:rgba(15,23,42,.92);
+    backdrop-filter:blur(14px);
+    border:1px solid rgba(56,189,248,.35);
+    border-radius:16px;
+    padding:14px 18px;
+    font-size:.88rem;
+    text-align:center;
+    color:var(--text);
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .4s ease, transform .4s ease;
+    z-index:10;
+  }
+  .toast.visible{ opacity:1; transform:translate(-50%,0); }
+
+  /* ===========================================================
+     ACCESSIBILITY — respect reduced motion
+  =========================================================== */
+  @media (prefers-reduced-motion: reduce){
+    *{
+      animation-duration:.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.01ms !important;
+    }
+  }
+
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+
+  <!-- Ambient particle canvas -->
+  <canvas id="bg-canvas"></canvas>
+
+  <!-- Soft glowing background circles -->
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+  <div class="glow glow-3"></div>
+
+  <main class="stage">
+    <div class="card" id="card">
+
+      <!-- ============ BOOT SEQUENCE ============ -->
+      <div class="boot" id="boot"></div>
+
+      <!-- ============ MAIN THANK YOU MESSAGE ============ -->
+      <div class="message" id="message" hidden></div>
+
+      <!-- ============ END CREDITS ============ -->
+      <div class="credits-wrap" id="creditsWrap" hidden>
+        <div class="credits-eyebrow">— end credits —</div>
+        <div class="credits-window">
+          <div class="credits-scroll" id="creditsScroll">
+            <div class="credit-block">
+              <div class="credit-label">Created by</div>
+              <div class="credit-value" id="dharmaName">Dharma.exe ⚡</div>
+            </div>
+            <div class="credit-block">
+              <div class="credit-label">Powered by</div>
+              <div class="credit-value">Overthinking</div>
+              <div class="credit-value">Courage</div>
+              <div class="credit-value">Random ideas</div>
+            </div>
+            <div class="credit-block">
+              <div class="credit-label">Special thanks</div>
+              <div class="credit-value">The confidence button, for finally working 😭</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ MISSION REPORT ============ -->
+      <div class="mission" id="mission" hidden>
+        <div class="mission-title">Mission report</div>
+        <div class="mission-row">
+          <span>Website created</span>
+          <span class="status done">✔</span>
+        </div>
+        <div class="mission-row">
+          <span>Awkwardness reduced</span>
+          <span class="status done">Hopefully ✔</span>
+        </div>
+        <div class="mission-row">
+          <span>Conversation started</span>
+          <span class="status pending">Pending...</span>
+        </div>
+        <div class="mission-row">
+          <span>Whatever happens</span>
+          <span class="status done">Accepted ✔</span>
+        </div>
+      </div>
+
+      <!-- ============ ACTIONS ============ -->
+      <div class="actions" id="actions" hidden>
+        <button id="restartBtn" type="button">Restart this chaos 😂</button>
+        <button id="exitBtn" type="button">Exit website ✨</button>
+        <p class="exit-note" id="exitNote" hidden>Thanks for visiting :)</p>
+      </div>
+
+      <!-- ============ HIDDEN MESSAGE (after 5s) ============ -->
+      <div class="hidden-msg" id="hiddenMsg" hidden></div>
+
+    </div>
+  </main>
+
+  <!-- Toast for easter eggs -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    /* =========================================================
+       UTILITIES
+    ========================================================= */
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* =========================================================
+       AMBIENT PARTICLE BACKGROUND
+    ========================================================= */
+    function initParticles(){
+      const canvas = document.getElementById('bg-canvas');
+      const ctx = canvas.getContext('2d');
+      let w, h;
+
+      function resize(){
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const count = 40;
+      const particles = Array.from({ length: count }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 1.6 + 0.4,
+        speed: Math.random() * 0.25 + 0.05,
+        drift: (Math.random() - 0.5) * 0.3,
+        alpha: Math.random() * 0.5 + 0.15
+      }));
+
+      function draw(){
+        ctx.clearRect(0, 0, w, h);
+        for (const p of particles) {
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(148,197,255,${p.alpha})`;
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (!reduceMotion) {
+            p.y -= p.speed;
+            p.x += p.drift;
+            if (p.y < -5) { p.y = h + 5; p.x = Math.random() * w; }
+            if (p.x < -5) p.x = w + 5;
+            if (p.x > w + 5) p.x = -5;
+          }
+        }
+        if (!reduceMotion) requestAnimationFrame(draw);
+      }
+      draw();
+    }
+
+    /* =========================================================
+       TOAST (for easter eggs)
+    ========================================================= */
+    let toastTimer;
+    function showToast(text){
+      const toast = document.getElementById('toast');
+      clearTimeout(toastTimer);
+      toast.textContent = text;
+      toast.classList.add('visible');
+      toastTimer = setTimeout(() => toast.classList.remove('visible'), 3400);
+    }
+
+    /* =========================================================
+       BOOT SEQUENCE
+    ========================================================= */
+    async function typeBootLine(container, text, speed = 28){
+      const row = document.createElement('div');
+      row.className = 'boot-row';
+      const span = document.createElement('span');
+      row.appendChild(span);
+      const cursor = document.createElement('span');
+      cursor.className = 'cursor';
+      row.appendChild(cursor);
+      container.appendChild(row);
+
+      if (reduceMotion) {
+        span.textContent = text;
+      } else {
+        for (let i = 0; i < text.length; i++) {
+          span.textContent += text[i];
+          await sleep(speed);
+        }
+      }
+      cursor.remove();
+    }
+
+    async function runBoot(){
+      const boot = document.getElementById('boot');
+      await typeBootLine(boot, '> Journey Completed ✔');
+      await sleep(800);
+      await typeBootLine(boot, '> Loading final message...');
+      await sleep(950);
+      await typeBootLine(boot, '> Here it is :)');
+      await sleep(750);
+      boot.classList.add('hide');
+      await sleep(450);
+      boot.hidden = true;
+    }
+
+    /* =========================================================
+       MAIN THANK YOU MESSAGE
+    ========================================================= */
+    const messageParts = [
+      ['Hey Kirti...', 'First of all...', 'Thanks for actually reaching this far 😭'],
+      ['Honestly, this website was probably the most complicated way someone started a conversation.'],
+      ['But if it made you smile even once...', 'Then I guess it worked 😂'],
+      ['No pressure.', 'No expectations.', 'Just wanted to try something different instead of wondering what if.'],
+      ['So yeah...', 'Thanks for being part of this random little story :)']
+    ];
+
+    async function revealLine(container, text){
+      const p = document.createElement('p');
+      p.className = 'msg-line';
+      p.textContent = text;
+      container.appendChild(p);
+      void p.offsetWidth; // force reflow so the transition runs
+      p.classList.add('visible');
+      await sleep(500);
+      return p;
+    }
+
+    async function runMessage(){
+      const message = document.getElementById('message');
+      message.hidden = false;
+
+      for (const part of messageParts) {
+        const partEl = document.createElement('div');
+        partEl.className = 'msg-part';
+        message.appendChild(partEl);
+
+        let lastLine = null;
+        for (const line of part) {
+          lastLine = await revealLine(partEl, line);
+        }
+
+        // The very last line of the final part is a quiet easter egg
+        if (part === messageParts[messageParts.length - 1]) {
+          lastLine.addEventListener('click', () => {
+            showToast('Confidence level after sending this: Unknown 😭');
+          });
+        }
+
+        await sleep(1200);
+      }
+    }
+
+    /* =========================================================
+       CREDITS
+    ========================================================= */
+    let dharmaClicks = 0;
+    function handleDharmaClick(){
+      dharmaClicks++;
+      if (dharmaClicks === 5) {
+        showToast('Secret ending unlocked: Dharma survived the website creation arc 😂');
+        dharmaClicks = 0;
+      }
+    }
+
+    async function runCredits(){
+      const wrap = document.getElementById('creditsWrap');
+      wrap.hidden = false;
+      void wrap.offsetWidth;
+      wrap.classList.add('visible');
+
+      document.getElementById('dharmaName').addEventListener('click', handleDharmaClick);
+
+      await sleep(reduceMotion ? 800 : 11400);
+    }
+
+    /* =========================================================
+       MISSION REPORT
+    ========================================================= */
+    async function runMission(){
+      const mission = document.getElementById('mission');
+      mission.hidden = false;
+      void mission.offsetWidth;
+      mission.classList.add('visible');
+
+      const rows = mission.querySelectorAll('.mission-row');
+      for (const row of rows) {
+        row.classList.add('visible');
+        await sleep(220);
+      }
+      await sleep(500);
+    }
+
+    /* =========================================================
+       ACTIONS
+    ========================================================= */
+    function setupActions(){
+      const actions = document.getElementById('actions');
+      actions.hidden = false;
+      void actions.offsetWidth;
+      actions.classList.add('visible');
+
+      document.getElementById('restartBtn').addEventListener('click', () => {
+        window.location.href = 'index.html';
+      });
+
+      document.getElementById('exitBtn').addEventListener('click', () => {
+        document.body.classList.add('exited');
+        const note = document.getElementById('exitNote');
+        note.hidden = false;
+        void note.offsetWidth;
+        note.classList.add('visible');
+      });
+    }
+
+    /* =========================================================
+       HIDDEN MESSAGE — appears 5 seconds after the ending settles
+    ========================================================= */
+    async function runHiddenMessage(){
+      await sleep(5000);
+      const hm = document.getElementById('hiddenMsg');
+      hm.hidden = false;
+      void hm.offsetWidth;
+      hm.classList.add('visible');
+
+      const l1 = document.createElement('div');
+      l1.textContent = 'Also...';
+      hm.appendChild(l1);
+      await sleep(900);
+
+      const l2 = document.createElement('div');
+      l2.textContent = "Still better than just sending 'hey', right? 💀";
+      hm.appendChild(l2);
+    }
+
+    /* =========================================================
+       MAIN ORCHESTRATOR
+    ========================================================= */
+    async function main(){
+      await runBoot();
+      await runMessage();
+      await runCredits();
+      await runMission();
+      setupActions();
+      runHiddenMessage(); // fires independently, doesn't block anything else
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initParticles();
+      main();
+    });
+  </script>
+
+</body>
+</html>

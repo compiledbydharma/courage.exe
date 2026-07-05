@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Starting conversation.exe</title>
+
+<!-- Google Fonts: Poppins for UI text, JetBrains Mono for terminal text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ DESIGN TOKENS ============ */
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --accent-soft:rgba(56,189,248,0.18);
+    --white:#F8FAFC;
+    --error:#EF4444;
+    --glass:rgba(255,255,255,0.07);
+    --border-glow:rgba(56,189,248,0.35);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+
+  body{
+    min-height:100vh;
+    min-height:100dvh;
+    background:
+      radial-gradient(circle at 25% 15%, #0c1a30 0%, transparent 55%),
+      radial-gradient(circle at 80% 85%, #0a1524 0%, transparent 50%),
+      var(--bg);
+    font-family:'Poppins', sans-serif;
+    color:var(--white);
+    overflow-x:hidden;
+    position:relative;
+  }
+
+  /* ============ BACKGROUND: particle canvas ============ */
+  #particles{
+    position:fixed; inset:0;
+    width:100%; height:100%;
+    z-index:0;
+  }
+
+  /* ============ BACKGROUND: floating blurred orbs ============ */
+  .bg-orbs{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .orb{
+    position:absolute; border-radius:50%;
+    filter:blur(60px);
+    background:radial-gradient(circle, var(--accent), transparent 70%);
+    animation:floatOrb 16s ease-in-out infinite;
+    will-change:transform;
+  }
+  .orb-1{ width:280px; height:280px; top:-70px; left:-70px; opacity:0.30; animation-duration:17s; }
+  .orb-2{ width:230px; height:230px; bottom:-50px; right:-50px; opacity:0.28; animation-duration:21s; animation-delay:-4s; }
+  .orb-3{ width:190px; height:190px; top:45%; left:65%; opacity:0.16; animation-duration:19s; animation-delay:-9s; }
+
+  @keyframes floatOrb{
+    0%,100%{ transform:translate(0,0); }
+    50%{ transform:translate(24px,-32px); }
+  }
+
+  /* ============ BACKGROUND: subtle terminal grid ============ */
+  .grid-overlay{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.045) 1px, transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+    mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+  }
+
+  /* ============ LAYOUT ============ */
+  .stage{
+    position:relative; z-index:1;
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+
+  /* ============ GLASS CARD ============ */
+  .glass-card{
+    width:90%; max-width:420px;
+    border-radius:25px;
+    background:var(--glass);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--border-glow);
+    box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:28px 24px;
+    display:flex; flex-direction:column; gap:18px;
+    animation:cardIn 0.7s cubic-bezier(.22,.9,.32,1) both;
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(16px) scale(0.97); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* ============ FAKE WINDOW HEADER ============ */
+  .window-header{
+    display:flex; align-items:center; gap:10px;
+    padding-bottom:14px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  .window-dots{ display:flex; gap:6px; flex-shrink:0; }
+  .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .dot-red{ background:#EF4444; }
+  .dot-yellow{ background:#F5B942; }
+  .dot-green{ background:#22C55E; }
+
+  .window-title{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.02em;
+    color:rgba(248,250,252,0.5);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #titleTap{
+    cursor:pointer;
+    color:rgba(248,250,252,0.85);
+    transition:color .2s ease;
+    user-select:none;
+    touch-action:manipulation;
+  }
+  #titleTap:active{ color:var(--accent); }
+
+  /* ============ TERMINAL BODY ============ */
+  .terminal-body{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.84rem;
+    line-height:1.65;
+    min-height:110px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .term-line{ white-space:pre-wrap; word-break:break-word; color:rgba(248,250,252,0.85); }
+  .text-error{ color:var(--error); font-weight:600; }
+  .text-error-msg{ color:var(--error); opacity:0.85; }
+  .caret{
+    display:inline-block; width:7px; height:1em;
+    background:var(--accent);
+    margin-left:2px;
+    animation:blink 0.9s steps(1) infinite;
+    vertical-align:text-bottom;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ============ LOADING BAR ============ */
+  .loading-wrap{ display:flex; flex-direction:column; gap:8px; }
+  .loading-bar{
+    font-family:'JetBrains Mono', monospace;
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    cursor:pointer; user-select:none; touch-action:manipulation;
+    padding:8px 10px; border-radius:10px;
+    transition:transform .15s ease, background .2s ease;
+  }
+  .loading-bar:active{ transform:scale(0.97); background:rgba(255,255,255,0.05); }
+  .bar-track{
+    color:var(--accent);
+    text-shadow:0 0 8px rgba(56,189,248,0.65);
+    letter-spacing:1px;
+    font-size:0.92rem;
+    transition:color .3s ease, text-shadow .3s ease;
+  }
+  .bar-percent{
+    color:rgba(248,250,252,0.7);
+    font-size:0.78rem;
+    min-width:44px; text-align:right;
+    transition:color .3s ease;
+  }
+  .loading-bar.stuck .bar-track{ color:var(--error); text-shadow:0 0 8px rgba(239,68,68,0.55); }
+  .loading-bar.stuck .bar-percent{ color:var(--error); }
+
+  .status-msg{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    color:rgba(248,250,252,0.45);
+    min-height:16px;
+    padding-left:10px;
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .status-msg.show{ opacity:1; }
+
+  /* ============ FINAL BUTTON ============ */
+  .cta-wrap{
+    display:flex; justify-content:center; margin-top:4px;
+    opacity:0; transform:translateY(8px) scale(0.96);
+    transition:opacity .5s ease, transform .5s ease;
+    pointer-events:none;
+  }
+  .cta-wrap.show{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+
+  .cta-btn{
+    font-family:'Poppins', sans-serif;
+    font-weight:600; font-size:0.95rem;
+    color:#04121c;
+    background:linear-gradient(135deg, #38BDF8, #7dd3fc);
+    border:none; padding:14px 28px; border-radius:999px;
+    cursor:pointer; touch-action:manipulation;
+    box-shadow:0 8px 24px rgba(56,189,248,0.35);
+    transition:transform .2s ease, box-shadow .3s ease;
+  }
+  .cta-btn:hover{ box-shadow:0 10px 30px rgba(56,189,248,0.5); }
+  .cta-btn:active{ transform:scale(0.94); }
+
+  /* ============ FOOTER ============ */
+  .footer-note{
+    text-align:center;
+    font-size:0.68rem;
+    color:rgba(248,250,252,0.35);
+    line-height:1.5;
+    margin-top:2px;
+  }
+
+  /* ============ TOAST POPUP ============ */
+  .toast{
+    position:fixed; left:50%; bottom:32px;
+    transform:translate(-50%, 16px);
+    background:rgba(13,20,32,0.92);
+    border:1px solid rgba(56,189,248,0.3);
+    color:var(--white);
+    font-family:'Poppins', sans-serif;
+    font-size:0.82rem;
+    padding:12px 18px; border-radius:14px;
+    backdrop-filter:blur(12px);
+    -webkit-backdrop-filter:blur(12px);
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease, transform .3s ease;
+    z-index:10; max-width:86%; text-align:center;
+    box-shadow:0 8px 24px rgba(0,0,0,0.4);
+  }
+  .toast.show{ opacity:1; transform:translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce){
+    .orb{ animation:none; }
+    .glass-card{ animation:none; }
+    .caret{ animation:none; opacity:1; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- animated particle background -->
+  <canvas id="particles"></canvas>
+
+  <!-- floating blurred orbs -->
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <!-- subtle terminal grid -->
+  <div class="grid-overlay"></div>
+
+  <main class="stage">
+    <section class="glass-card" id="card">
+
+      <!-- fake window header -->
+      <div class="window-header">
+        <div class="window-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <div class="window-title"><span id="titleTap">DharmaOS</span> Terminal</div>
+      </div>
+
+      <!-- terminal typing output -->
+      <div class="terminal-body" id="terminalBody"></div>
+
+      <!-- loading bar (stays visible, freezes at 67% later) -->
+      <div class="loading-wrap" id="loadingWrap" hidden>
+        <div class="loading-bar" id="loadingBar">
+          <span class="bar-track" id="barTrack">[░░░░░░░░░░]</span>
+          <span class="bar-percent" id="barPercent">0%</span>
+        </div>
+        <p class="status-msg" id="statusMsg"></p>
+      </div>
+
+      <!-- final reveal button -->
+      <div class="cta-wrap" id="ctaWrap">
+        <button class="cta-btn" id="ctaBtn">Start Plan B 😂 →</button>
+      </div>
+
+      <p class="footer-note">made with 90% overthinking<br>and 10% courage ⚡</p>
+    </section>
+  </main>
+
+  <!-- toast popup for easter eggs / interactions -->
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ===================== PARTICLE BACKGROUND ===================== */
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function makeParticles(count){
+    const arr = [];
+    for(let i=0;i<count;i++){
+      arr.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: Math.random()*1.6 + 0.6,
+        vx: (Math.random()-0.5)*0.15,
+        vy: (Math.random()-0.5)*0.15,
+        o: Math.random()*0.5 + 0.15
+      });
+    }
+    return arr;
+  }
+
+  function drawParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(148,211,248,${p.o})`;
+      ctx.fill();
+    });
+  }
+
+  function stepParticles(){
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = canvas.width;
+      if(p.x > canvas.width) p.x = 0;
+      if(p.y < 0) p.y = canvas.height;
+      if(p.y > canvas.height) p.y = 0;
+    });
+  }
+
+  function animateParticles(){
+    stepParticles();
+    drawParticles();
+    if(!reduceMotion) requestAnimationFrame(animateParticles);
+  }
+
+  resizeCanvas();
+  particles = makeParticles(46);
+  drawParticles();
+  if(!reduceMotion){
+    requestAnimationFrame(animateParticles);
+    window.addEventListener('resize', ()=>{ resizeCanvas(); });
+  }
+
+  /* ===================== TOAST HELPER ===================== */
+  const toastEl = document.getElementById('toast');
+  let toastTimer = null;
+  function showToast(msg, duration = 2400){
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=> toastEl.classList.remove('show'), duration);
+  }
+
+  /* ===================== TERMINAL TYPING ENGINE ===================== */
+  const term = document.getElementById('terminalBody');
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  async function typeLine(text, { speed = 26, className = '' } = {}){
+    const line = document.createElement('div');
+    line.className = 'term-line ' + className;
+    term.appendChild(line);
+
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    line.appendChild(caret);
+
+    if(reduceMotion){
+      caret.remove();
+      line.textContent = text;
+      return line;
+    }
+
+    for(let i = 0; i < text.length; i++){
+      caret.insertAdjacentText('beforebegin', text[i]);
+      await sleep(speed);
+    }
+    caret.remove();
+    return line;
+  }
+
+  /* ===================== LOADING SEQUENCE ===================== */
+  const loadingWrap = document.getElementById('loadingWrap');
+  const loadingBar = document.getElementById('loadingBar');
+  const barTrack = document.getElementById('barTrack');
+  const barPercent = document.getElementById('barPercent');
+  const statusMsg = document.getElementById('statusMsg');
+
+  function updateBar(percent){
+    const filled = Math.round(percent / 10);
+    barTrack.textContent = '[' + '█'.repeat(filled) + '░'.repeat(10 - filled) + ']';
+    barPercent.textContent = percent + '%';
+  }
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  async function setStatus(msg){
+    statusMsg.classList.remove('show');
+    await sleep(120);
+    statusMsg.textContent = msg;
+    statusMsg.classList.add('show');
+  }
+
+  async function runLoadingSequence(){
+    loadingWrap.hidden = false;
+    updateBar(0);
+
+    const funnyPool = shuffle([
+      'Loading courage...',
+      'Reducing overthinking...',
+      'Finding confidence...',
+      'Preparing questionable decision...'
+    ]);
+    const messages = [...funnyPool, 'Almost there...'];
+    const steps = [10, 25, 43, 58, 67];
+
+    for(let i = 0; i < steps.length; i++){
+      await sleep(420);
+      updateBar(steps[i]);
+      await setStatus(messages[i]);
+    }
+    await sleep(400);
+  }
+
+  function freezeBarAsStuck(){
+    loadingBar.classList.add('stuck');
+    barPercent.textContent = '67% ⚠';
+  }
+
+  /* ===================== MAIN BOOT SEQUENCE ===================== */
+  const ctaWrap = document.getElementById('ctaWrap');
+  ctaWrap.hidden = false; // kept in flow but invisible until .show is added
+
+  async function bootSequence(){
+    await sleep(450);
+    await typeLine('> Starting conversation.exe...', { speed: 30 });
+    await sleep(650);
+    await typeLine('Checking confidence levels...', { speed: 26 });
+    await sleep(500);
+
+    await runLoadingSequence();
+
+    await sleep(500);
+    await typeLine('Error detected:', { className: 'text-error', speed: 24 });
+    freezeBarAsStuck();
+    await sleep(250);
+    await typeLine('"Approaching_in_real_life.exe has stopped working"', { className: 'text-error-msg', speed: 16 });
+    await sleep(750);
+    await typeLine('Searching solution...', { speed: 26 });
+    await sleep(750);
+    await typeLine('Solution found:', { speed: 26 });
+    await sleep(400);
+    await typeLine('Switching to Plan B...', { speed: 26 });
+    await sleep(650);
+
+    ctaWrap.classList.add('show');
+  }
+
+  window.addEventListener('load', bootSequence);
+
+  /* ===================== EXTRA INTERACTIONS ===================== */
+
+  // 1) Tapping the loading bar shows a joke popup
+  loadingBar.addEventListener('click', ()=>{
+    showToast('Refreshing confidence... still loading 😭');
+  });
+
+  // 2) Triple-tap the "DharmaOS" title to unlock a hidden message
+  const titleTap = document.getElementById('titleTap');
+  let tapCount = 0;
+  let lastTap = 0;
+  titleTap.addEventListener('click', ()=>{
+    const now = Date.now();
+    if(now - lastTap > 1200) tapCount = 0;
+    tapCount++;
+    lastTap = now;
+    if(tapCount >= 3){
+      showToast('Easter egg unlocked: Neymar mode exists somewhere 🇧🇷⚽', 3000);
+      tapCount = 0;
+    }
+  });
+
+  // 3) Final button redirects to the next page in the experience
+  document.getElementById('ctaBtn').addEventListener('click', ()=>{
+    window.location.href = 'name.html';
+  });
+
+})();
+</script>
+</body>
+</html>

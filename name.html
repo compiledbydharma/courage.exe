@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Identity Check // DharmaOS</title>
+
+<!-- Google Fonts: Poppins for UI text, JetBrains Mono for status/code text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============ DESIGN TOKENS (matches index.html) ============ */
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --white:#F8FAFC;
+    --success:#22C55E;
+    --warning:#FACC15;
+    --glass:rgba(255,255,255,0.07);
+    --border-glow:rgba(56,189,248,0.35);
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+
+  body{
+    min-height:100vh; min-height:100dvh;
+    background:
+      radial-gradient(circle at 25% 15%, #0c1a30 0%, transparent 55%),
+      radial-gradient(circle at 80% 85%, #0a1524 0%, transparent 50%),
+      var(--bg);
+    font-family:'Poppins', sans-serif;
+    color:var(--white);
+    overflow-x:hidden;
+    position:relative;
+    animation:pageFade .6s ease both;
+  }
+  @keyframes pageFade{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ============ BACKGROUND: particles ============ */
+  #particles{ position:fixed; inset:0; width:100%; height:100%; z-index:0; }
+
+  /* ============ BACKGROUND: floating orbs ============ */
+  .bg-orbs{ position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .orb{
+    position:absolute; border-radius:50%; filter:blur(60px);
+    background:radial-gradient(circle, var(--accent), transparent 70%);
+    animation:floatOrb 17s ease-in-out infinite; will-change:transform;
+  }
+  .orb-1{ width:270px; height:270px; top:-60px; left:-70px; opacity:0.28; animation-duration:18s; }
+  .orb-2{ width:230px; height:230px; bottom:-50px; right:-40px; opacity:0.26; animation-duration:22s; animation-delay:-5s; }
+  .orb-3{ width:190px; height:190px; top:50%; left:68%; opacity:0.15; animation-duration:20s; animation-delay:-10s; }
+  @keyframes floatOrb{ 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(22px,-28px); } }
+
+  /* ============ BACKGROUND: subtle grid ============ */
+  .grid-overlay{
+    position:fixed; inset:0; z-index:0; pointer-events:none;
+    background-image:
+      linear-gradient(rgba(56,189,248,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(56,189,248,0.045) 1px, transparent 1px);
+    background-size:38px 38px;
+    -webkit-mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+    mask-image:radial-gradient(circle at center, black 0%, transparent 78%);
+  }
+
+  /* ============ LAYOUT ============ */
+  .stage{
+    position:relative; z-index:1;
+    min-height:100vh; min-height:100dvh;
+    display:flex; align-items:center; justify-content:center;
+    padding:24px;
+  }
+
+  /* ============ GLASS CARD ============ */
+  .glass-card{
+    position:relative;
+    width:90%; max-width:420px;
+    border-radius:25px;
+    background:var(--glass);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--border-glow);
+    box-shadow:0 8px 32px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:30px 24px;
+    display:flex; flex-direction:column; gap:18px;
+    overflow:hidden;
+    animation:cardIn .7s cubic-bezier(.22,.9,.32,1) both;
+  }
+  @keyframes cardIn{
+    from{ opacity:0; transform:translateY(18px) scale(0.97); }
+    to{ opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* ============ HEADER / INTRO ============ */
+  .heading{
+    font-size:1.35rem; font-weight:600; letter-spacing:-0.01em;
+  }
+  .intro-text{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.78rem; line-height:1.6;
+    color:rgba(248,250,252,0.6);
+    display:flex; flex-direction:column; gap:4px;
+    min-height:38px;
+  }
+  .intro-line{ white-space:pre-wrap; }
+  .caret{
+    display:inline-block; width:6px; height:1em;
+    background:var(--accent); margin-left:2px;
+    animation:blink .9s steps(1) infinite;
+    vertical-align:text-bottom;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ============ VERIFY BLOCK ============ */
+  .verify-block{ display:flex; flex-direction:column; gap:12px; transition:opacity .3s ease; }
+  .verify-block.disabled{ opacity:0.35; pointer-events:none; }
+
+  .input-wrap{ position:relative; }
+  #nameInput{
+    width:100%;
+    font-family:'Poppins', sans-serif;
+    font-size:0.95rem;
+    color:var(--white);
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.14);
+    border-radius:14px;
+    padding:14px 16px;
+    outline:none;
+    transition:border-color .25s ease, box-shadow .25s ease, background .25s ease;
+  }
+  #nameInput::placeholder{ color:rgba(248,250,252,0.35); }
+  #nameInput:focus{
+    border-color:var(--accent);
+    background:rgba(255,255,255,0.08);
+    box-shadow:0 0 0 4px rgba(56,189,248,0.14), 0 0 18px rgba(56,189,248,0.25);
+  }
+  @keyframes shake{
+    10%,90%{ transform:translateX(-2px); }
+    20%,80%{ transform:translateX(3px); }
+    30%,50%,70%{ transform:translateX(-6px); }
+    40%,60%{ transform:translateX(6px); }
+  }
+  .input-shake{ animation:shake .45s ease; }
+
+  .cta-btn{
+    font-family:'Poppins', sans-serif;
+    font-weight:600; font-size:0.92rem;
+    color:#04121c;
+    background:linear-gradient(135deg, #38BDF8, #7dd3fc);
+    border:none; padding:13px 24px; border-radius:999px;
+    cursor:pointer; touch-action:manipulation;
+    box-shadow:0 8px 22px rgba(56,189,248,0.32);
+    transition:transform .2s ease, box-shadow .3s ease;
+  }
+  .cta-btn:hover{ box-shadow:0 10px 28px rgba(56,189,248,0.48); }
+  .cta-btn:active{ transform:scale(0.94); }
+
+  .joke-rotator{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    color:rgba(248,250,252,0.4);
+    text-align:center;
+    min-height:16px;
+    opacity:0;
+    transition:opacity .35s ease;
+  }
+  .joke-rotator.show{ opacity:1; }
+
+  /* ============ STATUS BLOCK (results) ============ */
+  .status-block{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem; line-height:1.6;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .status-line{ white-space:pre-wrap; color:rgba(248,250,252,0.85); }
+  .status-line.warn{ color:var(--warning); }
+
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+  .btn-secondary{
+    font-family:'Poppins', sans-serif; font-weight:500; font-size:0.85rem;
+    color:var(--white);
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.18);
+    padding:11px 20px; border-radius:999px;
+    cursor:pointer; touch-action:manipulation;
+    transition:transform .2s ease, background .2s ease;
+  }
+  .btn-secondary:hover{ background:rgba(255,255,255,0.14); }
+  .btn-secondary:active{ transform:scale(0.94); }
+
+  /* ============ SUCCESS REVEAL ============ */
+  .success-pop{
+    display:flex; flex-direction:column; align-items:center; gap:10px;
+    text-align:center; padding:6px 0 2px;
+    animation:successIn .5s cubic-bezier(.22,.9,.32,1) both;
+  }
+  @keyframes successIn{ from{ opacity:0; transform:scale(0.85); } to{ opacity:1; transform:scale(1); } }
+
+  .check-badge{
+    width:56px; height:56px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(34,197,94,0.12);
+    box-shadow:0 0 24px rgba(34,197,94,0.4);
+  }
+  .check-badge svg{ width:30px; height:30px; }
+  .check-badge path{
+    fill:none; stroke:var(--success); stroke-width:3;
+    stroke-linecap:round; stroke-linejoin:round;
+    stroke-dasharray:40; stroke-dashoffset:40;
+    animation:drawCheck .5s ease .1s forwards;
+  }
+  @keyframes drawCheck{ to{ stroke-dashoffset:0; } }
+
+  .access-granted{ color:var(--success); font-weight:600; font-size:1.05rem; }
+  .success-msg{ color:rgba(248,250,252,0.85); font-family:'Poppins', sans-serif; font-size:0.92rem; }
+
+  /* ============ CONFETTI ============ */
+  .confetti-container{
+    position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:5;
+  }
+  .confetti-piece{
+    position:absolute; top:38%; width:6px; height:10px; border-radius:2px;
+    animation:confettiBurst 1.1s ease-out forwards;
+  }
+  @keyframes confettiBurst{
+    0%{ transform:translate(0,0) rotate(0deg); opacity:1; }
+    100%{ transform:translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity:0; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .orb{ animation:none; }
+    .glass-card{ animation:none; }
+    .caret{ animation:none; opacity:1; }
+    body{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+  <canvas id="particles"></canvas>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="grid-overlay"></div>
+
+  <main class="stage">
+    <section class="glass-card" id="card">
+
+      <!-- confetti overlay, populated on success -->
+      <div class="confetti-container" id="confettiContainer"></div>
+
+      <!-- heading + typed intro -->
+      <div>
+        <h1 class="heading">Identity Check 👀</h1>
+        <div class="intro-text" id="introText"></div>
+      </div>
+
+      <!-- name input + verify -->
+      <div class="verify-block" id="verifyBlock">
+        <div class="input-wrap">
+          <input type="text" id="nameInput" placeholder="Enter your name..." autocomplete="off" spellcheck="false">
+        </div>
+        <button class="cta-btn" id="verifyBtn">Verify ✨</button>
+        <p class="joke-rotator" id="jokeRotator"></p>
+      </div>
+
+      <!-- dynamic verification result -->
+      <div class="status-block" id="statusBlock" hidden></div>
+
+    </section>
+  </main>
+
+<script>
+(function(){
+  "use strict";
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ===================== PARTICLE BACKGROUND ===================== */
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+  function makeParticles(count){
+    const arr = [];
+    for(let i = 0; i < count; i++){
+      arr.push({
+        x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+        r: Math.random()*1.6 + 0.6,
+        vx: (Math.random()-0.5)*0.15, vy: (Math.random()-0.5)*0.15,
+        o: Math.random()*0.5 + 0.15
+      });
+    }
+    return arr;
+  }
+
+  function drawParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(148,211,248,${p.o})`;
+      ctx.fill();
+    });
+  }
+
+  function stepParticles(){
+    particles.forEach(p=>{
+      p.x += p.vx; p.y += p.vy;
+      if(p.x < 0) p.x = canvas.width; if(p.x > canvas.width) p.x = 0;
+      if(p.y < 0) p.y = canvas.height; if(p.y > canvas.height) p.y = 0;
+    });
+  }
+
+  function animateParticles(){
+    stepParticles(); drawParticles();
+    if(!reduceMotion) requestAnimationFrame(animateParticles);
+  }
+
+  resizeCanvas();
+  particles = makeParticles(42);
+  drawParticles();
+  if(!reduceMotion){
+    requestAnimationFrame(animateParticles);
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  /* ===================== TYPING ENGINE ===================== */
+  async function typeInto(container, text, { speed = 24, className = '' } = {}){
+    const line = document.createElement('div');
+    line.className = className;
+    container.appendChild(line);
+
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    line.appendChild(caret);
+
+    if(reduceMotion){
+      caret.remove();
+      line.textContent = text;
+      return line;
+    }
+    for(let i = 0; i < text.length; i++){
+      caret.insertAdjacentText('beforebegin', text[i]);
+      await sleep(speed);
+    }
+    caret.remove();
+    return line;
+  }
+
+  /* ===================== INTRO TYPING ===================== */
+  const introText = document.getElementById('introText');
+  async function runIntro(){
+    await sleep(300);
+    await typeInto(introText, 'Before continuing this extremely random journey...', { speed: 18, className: 'intro-line' });
+    await sleep(350);
+    await typeInto(introText, 'Need to confirm if this reached the right person 😭', { speed: 18, className: 'intro-line' });
+  }
+  window.addEventListener('load', runIntro);
+
+  /* ===================== JOKE ROTATOR ===================== */
+  const jokeRotator = document.getElementById('jokeRotator');
+  const jokes = [
+    'No personal data collected obviously 😭',
+    "Just making sure this isn't a random uncle opening this 💀",
+    'Verification system made with 0% actual security'
+  ];
+  let jokeIndex = 0;
+  let jokeTimer = null;
+
+  function startJokeRotator(){
+    jokeIndex = 0;
+    jokeRotator.textContent = jokes[jokeIndex];
+    requestAnimationFrame(()=> jokeRotator.classList.add('show'));
+    jokeTimer = setInterval(()=>{
+      jokeRotator.classList.remove('show');
+      setTimeout(()=>{
+        jokeIndex = (jokeIndex + 1) % jokes.length;
+        jokeRotator.textContent = jokes[jokeIndex];
+        jokeRotator.classList.add('show');
+      }, 300);
+    }, 3400);
+  }
+  function stopJokeRotator(){
+    clearInterval(jokeTimer);
+    jokeRotator.classList.remove('show');
+  }
+  startJokeRotator();
+
+  /* ===================== CONFETTI ===================== */
+  function launchConfetti(){
+    const container = document.getElementById('confettiContainer');
+    const colors = ['#38BDF8', '#7dd3fc', '#0ea5e9', '#bae6fd'];
+    for(let i = 0; i < 26; i++){
+      const p = document.createElement('span');
+      p.className = 'confetti-piece';
+      p.style.left = (35 + Math.random()*30) + '%';
+      p.style.background = colors[Math.floor(Math.random()*colors.length)];
+      p.style.setProperty('--dx', (Math.random()*180 - 90) + 'px');
+      p.style.setProperty('--dy', (Math.random()*-160 - 40) + 'px');
+      p.style.setProperty('--rot', (Math.random()*360) + 'deg');
+      p.style.animationDelay = (Math.random()*0.12) + 's';
+      container.appendChild(p);
+      setTimeout(()=> p.remove(), 1400);
+    }
+  }
+
+  /* ===================== STATE HELPERS ===================== */
+  const verifyBlock = document.getElementById('verifyBlock');
+  const statusBlock = document.getElementById('statusBlock');
+  const nameInput = document.getElementById('nameInput');
+  const verifyBtn = document.getElementById('verifyBtn');
+
+  function lockVerifyBlock(){ verifyBlock.classList.add('disabled'); stopJokeRotator(); }
+
+  function clearStatus(){ statusBlock.innerHTML = ''; statusBlock.hidden = false; }
+
+  function addStatusLine(text, extraClass = ''){
+    const line = document.createElement('div');
+    line.className = 'status-line ' + extraClass;
+    line.textContent = text;
+    statusBlock.appendChild(line);
+    return line;
+  }
+
+  function makeContinueButton(label, destination){
+    const btn = document.createElement('button');
+    btn.className = 'cta-btn';
+    btn.style.marginTop = '8px';
+    btn.textContent = label;
+    btn.addEventListener('click', ()=>{ window.location.href = destination; });
+    return btn;
+  }
+
+  function resetToIdle(){
+    statusBlock.hidden = true;
+    statusBlock.innerHTML = '';
+    nameInput.value = '';
+    verifyBlock.classList.remove('disabled');
+    startJokeRotator();
+    nameInput.focus();
+  }
+
+  /* ===================== VERIFICATION BRANCHES ===================== */
+
+  async function runSuccess(){
+    lockVerifyBlock();
+    clearStatus();
+
+    await typeInto(statusBlock, 'Scanning...', { speed: 22, className: 'status-line' });
+    await sleep(550);
+    await typeInto(statusBlock, 'Checking user...', { speed: 22, className: 'status-line' });
+    await sleep(550);
+    await typeInto(statusBlock, 'Loading curiosity...', { speed: 22, className: 'status-line' });
+    await sleep(650);
+
+    const pop = document.createElement('div');
+    pop.className = 'success-pop';
+    pop.innerHTML = `
+      <div class="check-badge">
+        <svg viewBox="0 0 24 24"><path d="M4 12.5l5 5 11-11"/></svg>
+      </div>
+      <div class="access-granted">Access Granted ✨</div>
+      <div class="success-msg">Okay Kirti,<br>looks like this was meant for you :)</div>
+    `;
+    statusBlock.appendChild(pop);
+    launchConfetti();
+
+    await sleep(400);
+    statusBlock.appendChild(makeContinueButton('Continue this questionable journey 😂 →', 'doubt.html'));
+  }
+
+  async function runWrong(){
+    lockVerifyBlock();
+    clearStatus();
+    nameInput.classList.add('input-shake');
+    setTimeout(()=> nameInput.classList.remove('input-shake'), 500);
+
+    await typeInto(statusBlock, 'Hmm... this was probably not made for you 😭', { speed: 20, className: 'status-line warn' });
+    await sleep(2000);
+    await typeInto(statusBlock, 'Or maybe autocorrect betrayed you 💀', { speed: 20, className: 'status-line warn' });
+    await sleep(400);
+
+    const row = document.createElement('div');
+    row.className = 'btn-row';
+
+    const tryAgainBtn = document.createElement('button');
+    tryAgainBtn.className = 'btn-secondary';
+    tryAgainBtn.textContent = 'Try again';
+    tryAgainBtn.addEventListener('click', resetToIdle);
+
+    const continueAnywayBtn = document.createElement('button');
+    continueAnywayBtn.className = 'btn-secondary';
+    continueAnywayBtn.textContent = 'Continue anyway 😅';
+    continueAnywayBtn.addEventListener('click', ()=>{ window.location.href = 'doubt.html'; });
+
+    row.appendChild(tryAgainBtn);
+    row.appendChild(continueAnywayBtn);
+    statusBlock.appendChild(row);
+  }
+
+  async function runEasterEgg(){
+    lockVerifyBlock();
+    clearStatus();
+
+    await typeInto(statusBlock, 'Creator detected ⚽', { speed: 22, className: 'status-line' });
+    await sleep(500);
+    await typeInto(statusBlock, "Bro you already know what's inside 😭", { speed: 20, className: 'status-line' });
+    await sleep(450);
+
+    statusBlock.appendChild(makeContinueButton('Continue like you already know 😏 →', 'doubt.html'));
+  }
+
+  /* ===================== VERIFY BUTTON ===================== */
+  function handleVerify(){
+    const clean = nameInput.value.trim().toLowerCase();
+
+    if(clean === ''){
+      nameInput.classList.add('input-shake');
+      setTimeout(()=> nameInput.classList.remove('input-shake'), 500);
+      return;
+    }
+    if(clean === 'dharma'){
+      runEasterEgg();
+    } else if(clean === 'kirti'){
+      runSuccess();
+    } else {
+      runWrong();
+    }
+  }
+
+  verifyBtn.addEventListener('click', handleVerify);
+  nameInput.addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter') handleVerify();
+  });
+
+})();
+</script>
+</body>
+</html>

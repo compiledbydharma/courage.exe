@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Chat Simulator ⚡ Message Attempt</title>
+
+<!-- Google Fonts: Poppins for main UI, JetBrains Mono for system/terminal text -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* ============================================================
+     ROOT VARIABLES — same site identity as previous pages
+  ============================================================ */
+  :root{
+    --bg: #070B14;
+    --accent: #38BDF8;
+    --success: #22C55E;
+    --warning: #FACC15;
+    --error: #EF4444;
+    --text: #F8FAFC;
+    --glass: rgba(255,255,255,0.07);
+    --glass-border: rgba(56,189,248,0.35);
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Poppins', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ============================================================
+     BACKGROUND — subtle moving glow + rising particles
+  ============================================================ */
+  .bg-gradient{ position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--bg); }
+  .bg-gradient::before, .bg-gradient::after{
+    content: ""; position: absolute; width: 55vmax; height: 55vmax; border-radius: 50%;
+    filter: blur(100px);
+  }
+  .bg-gradient::before{ background: var(--accent); opacity: 0.18; top: -20%; left: -18%; animation: floatBlob1 20s ease-in-out infinite; }
+  .bg-gradient::after{ background: var(--accent); opacity: 0.10; bottom: -22%; right: -18%; animation: floatBlob2 24s ease-in-out infinite; }
+  @keyframes floatBlob1{ 0%,100%{ transform: translate(0,0);} 50%{ transform: translate(10%,8%);} }
+  @keyframes floatBlob2{ 0%,100%{ transform: translate(0,0);} 50%{ transform: translate(-8%,-10%);} }
+
+  .particles{ position: fixed; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+  .particle{
+    position: absolute; bottom: -20px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px 2px rgba(56,189,248,0.7);
+    animation-name: rise; animation-timing-function: linear; animation-fill-mode: forwards;
+  }
+  @keyframes rise{
+    0%{ transform: translateY(0) scale(1); opacity: 0; }
+    10%{ opacity: 0.8; }
+    100%{ transform: translateY(-110vh) scale(0.3); opacity: 0; }
+  }
+
+  /* ============================================================
+     PAGE LAYOUT
+  ============================================================ */
+  .page-wrap{
+    position: relative; z-index: 2;
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 32px 14px;
+  }
+
+  .glass-card{
+    position: relative;
+    width: 90%; max-width: 420px;
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 25px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 0 45px rgba(56,189,248,0.15), 0 25px 60px rgba(0,0,0,0.55);
+    padding: 20px 18px 22px;
+    animation: cardEntrance 0.8s cubic-bezier(.22,.9,.35,1) both;
+  }
+  @keyframes cardEntrance{
+    from{ opacity: 0; transform: translateY(30px) scale(0.96); }
+    to{ opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ============================================================
+     CHAT HEADER
+  ============================================================ */
+  .chat-header{
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 14px; margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .avatar{
+    width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), #123047);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1.05rem; color: #04101c;
+    box-shadow: 0 0 14px rgba(56,189,248,0.45);
+  }
+  .header-text{ display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .header-title{ font-weight: 600; font-size: 0.92rem; }
+  .header-status{
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+    color: rgba(248,250,252,0.55);
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+  }
+  .status-dot{
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--success); box-shadow: 0 0 6px var(--success);
+    animation: dotPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes dotPulse{ 0%,100%{ opacity: 1; } 50%{ opacity: 0.35; } }
+
+  /* ============================================================
+     CHAT BODY / MESSAGE FEED
+  ============================================================ */
+  .chat-body{
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 380px; min-height: 200px;
+    overflow-y: auto; overflow-x: hidden;
+    padding: 6px 4px 10px;
+    scroll-behavior: smooth;
+  }
+  .chat-body::-webkit-scrollbar{ width: 4px; }
+  .chat-body::-webkit-scrollbar-thumb{ background: rgba(56,189,248,0.3); border-radius: 4px; }
+
+  /* Generic message entrance animation */
+  .msg{
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    font-size: 0.88rem; line-height: 1.4;
+  }
+  .msg.in{ opacity: 1; transform: translateY(0); }
+
+  /* Dharma's outgoing draft bubbles */
+  .msg.dharma{
+    align-self: flex-end;
+    max-width: 80%;
+    background: linear-gradient(135deg, rgba(56,189,248,0.28), rgba(56,189,248,0.13));
+    border: 1px solid rgba(56,189,248,0.35);
+    padding: 10px 14px;
+    border-radius: 16px 16px 4px 16px;
+    cursor: default;
+  }
+  .msg.dharma.clickable{ cursor: pointer; }
+  .msg.dharma.deleting{ transition: opacity 0.4s ease, transform 0.4s ease; opacity: 0.2; transform: scale(0.94); }
+  .msg.dharma.deleted{
+    opacity: 0.55; font-style: italic;
+    background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.15);
+    color: rgba(248,250,252,0.5);
+  }
+
+  /* Typing indicator bubble */
+  .typing-bubble{
+    align-self: flex-end;
+    background: rgba(56,189,248,0.15);
+    border: 1px solid rgba(56,189,248,0.3);
+    padding: 11px 16px;
+    border-radius: 16px 16px 4px 16px;
+    display: flex; gap: 4px; width: fit-content;
+    opacity: 0; transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .typing-bubble.in{ opacity: 1; transform: translateY(0); }
+  .typing-bubble span{
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    animation: typingBounce 1.2s infinite ease-in-out;
+  }
+  .typing-bubble span:nth-child(2){ animation-delay: 0.15s; }
+  .typing-bubble span:nth-child(3){ animation-delay: 0.3s; }
+  @keyframes typingBounce{
+    0%,60%,100%{ transform: translateY(0); opacity: 0.4; }
+    30%{ transform: translateY(-4px); opacity: 1; }
+  }
+
+  /* System / analysis lines — centered pill or plain caption style */
+  .msg.system{
+    align-self: center;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: rgba(248,250,252,0.55);
+    max-width: 90%;
+  }
+  .msg.system.label{
+    color: var(--accent); font-weight: 600; letter-spacing: 0.06em;
+    margin-top: 6px; text-transform: uppercase; font-size: 0.68rem;
+  }
+  .msg.system.reason{ font-style: italic; color: rgba(248,250,252,0.45); }
+  .msg.system.choice-response{ color: var(--text); font-style: italic; }
+  .msg.system.fail-tag, .msg.system.success-tag, .msg.system.solution-tag{
+    display: inline-block; align-self: center;
+    padding: 4px 12px; border-radius: 999px; font-weight: 600;
+  }
+  .msg.system.fail-tag{ background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.4); color: var(--error); }
+  .msg.system.success-tag{ background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.4); color: var(--success); }
+  .msg.system.solution-tag{ background: rgba(56,189,248,0.12); border: 1px solid rgba(56,189,248,0.4); color: var(--accent); }
+  .msg.system.warn{ color: var(--warning); }
+
+  /* Scanner / loading bar used for "analysis running" + "searching alternatives" */
+  .scanner{
+    align-self: center; width: 65%; height: 4px; border-radius: 4px;
+    background: rgba(255,255,255,0.08); overflow: hidden; position: relative;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .scanner.in{ opacity: 1; }
+  .scanner::after{
+    content: ""; position: absolute; top: 0; left: -40%; width: 40%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scannerMove 0.9s linear infinite;
+  }
+  @keyframes scannerMove{ 0%{ left: -40%; } 100%{ left: 100%; } }
+
+  /* ============================================================
+     INTERACTIVE CHOICE CARD
+  ============================================================ */
+  .choice-card{
+    margin-top: 0; padding: 0 14px; border-radius: 16px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    opacity: 0; max-height: 0; overflow: hidden;
+    transition: opacity 0.4s ease, max-height 0.4s ease, padding 0.4s ease, margin 0.4s ease;
+  }
+  .choice-card.show{ opacity: 1; max-height: 260px; padding: 14px; margin-top: 4px; margin-bottom: 4px; }
+  .choice-question{ font-size: 0.84rem; font-weight: 600; margin: 0 0 10px; text-align: center; }
+  .choice-options{ display: flex; flex-direction: column; gap: 8px; }
+  .choice-options button{
+    padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(56,189,248,0.35);
+    background: rgba(56,189,248,0.08); color: var(--text);
+    font-family: 'Poppins', sans-serif; font-size: 0.83rem; text-align: left;
+    cursor: pointer; transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .choice-options button:hover{ background: rgba(56,189,248,0.18); }
+  .choice-options button:active{ transform: scale(0.97); }
+  .choice-options button:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ============================================================
+     FINAL REPORT CARD
+  ============================================================ */
+  .report-card{
+    margin-top: 0; padding: 0 16px; border-radius: 16px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    opacity: 0; max-height: 0; overflow: hidden;
+    transition: opacity 0.5s ease, max-height 0.5s ease, padding 0.5s ease, margin 0.5s ease;
+  }
+  .report-card.show{ opacity: 1; max-height: 320px; padding: 16px; margin-top: 14px; }
+  .report-title{ font-weight: 700; font-size: 0.88rem; margin-bottom: 12px; text-align: center; }
+  .report-row{
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .report-row:last-child{ border-bottom: none; }
+  .tag{ padding: 3px 10px; border-radius: 999px; font-weight: 600; font-size: 0.66rem; white-space: nowrap; }
+  .tag.fail{ background: rgba(239,68,68,0.15); color: var(--error); border: 1px solid rgba(239,68,68,0.4); }
+  .tag.warn{ background: rgba(250,204,21,0.15); color: var(--warning); border: 1px solid rgba(250,204,21,0.4); }
+  .tag.neutral{ background: rgba(255,255,255,0.08); color: rgba(248,250,252,0.7); border: 1px solid rgba(255,255,255,0.15); }
+  .tag.success{ background: rgba(34,197,94,0.15); color: var(--success); border: 1px solid rgba(34,197,94,0.4); }
+
+  /* ============================================================
+     CONTINUE BUTTON
+  ============================================================ */
+  .continue-btn{
+    display: block; margin: 20px auto 4px;
+    opacity: 0; transform: translateY(10px); pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    padding: 14px 24px; border: none; border-radius: 999px;
+    background: linear-gradient(135deg, #7dd3fc, var(--accent));
+    color: #04101c; font-family: 'Poppins', sans-serif;
+    font-weight: 700; font-size: 0.88rem; cursor: pointer;
+    animation: glowPulse 2s ease-in-out infinite;
+  }
+  .continue-btn.show{ opacity: 1; transform: translateY(0); pointer-events: auto; }
+  .continue-btn:focus-visible{ outline: 2px solid var(--text); outline-offset: 4px; }
+  @keyframes glowPulse{
+    0%,100%{ box-shadow: 0 0 18px rgba(56,189,248,0.4); }
+    50%{ box-shadow: 0 0 34px rgba(56,189,248,0.75); }
+  }
+
+  /* ============================================================
+     TOAST
+  ============================================================ */
+  .toast{
+    position: fixed; left: 50%; bottom: 26px; z-index: 100;
+    transform: translateX(-50%) translateY(20px);
+    max-width: 88%;
+    background: rgba(15,23,35,0.95);
+    border: 1px solid rgba(56,189,248,0.4);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem; line-height: 1.5;
+    text-align: center;
+    padding: 12px 20px; border-radius: 14px;
+    opacity: 0; pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .toast.show{ opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ============================================================
+     ACCESSIBILITY
+  ============================================================ */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    .particles{ display: none; }
+  }
+
+  @media (max-width: 360px){
+    .chat-body{ max-height: 320px; }
+    .msg{ font-size: 0.84rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Animated background layers -->
+  <div class="bg-gradient"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="page-wrap">
+    <div class="glass-card">
+
+      <!-- ===================== CHAT HEADER ===================== -->
+      <div class="chat-header">
+        <div class="avatar">D</div>
+        <div class="header-text">
+          <div class="header-title">Chat Simulator</div>
+          <div class="header-status" id="dharmaStatus">
+            Dharma.exe online <span class="status-dot"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CHAT BODY (populated by JS) ===================== -->
+      <div class="chat-body" id="chatBody"></div>
+
+      <!-- ===================== INTERACTIVE CHOICE ===================== -->
+      <div class="choice-card" id="choiceCard">
+        <p class="choice-question">What should Dharma send?</p>
+        <div class="choice-options">
+          <button type="button" data-choice="hey">Just "Hey"</button>
+          <button type="button" data-choice="joke">A random joke</button>
+          <button type="button" data-choice="different">Something different</button>
+        </div>
+      </div>
+
+      <!-- ===================== FINAL REPORT ===================== -->
+      <div class="report-card" id="reportCard">
+        <div class="report-title">Conversation Attempt Report</div>
+        <div class="report-row"><span>Normal texting</span><span class="tag fail">FAILED</span></div>
+        <div class="report-row"><span>Overthinking</span><span class="tag warn">HIGH</span></div>
+        <div class="report-row"><span>Effort</span><span class="tag neutral">QUESTIONABLE BUT PRESENT</span></div>
+        <div class="report-row"><span>Website</span><span class="tag success">APPROVED ✔</span></div>
+      </div>
+
+      <!-- ===================== CONTINUE ===================== -->
+      <button class="continue-btn" id="continueBtn">Important clarification first →</button>
+
+    </div>
+  </div>
+
+  <!-- ===================== TOAST ===================== -->
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     ELEMENT REFERENCES
+  ============================================================ */
+  const chatBody      = document.getElementById('chatBody');
+  const choiceCard     = document.getElementById('choiceCard');
+  const reportCard     = document.getElementById('reportCard');
+  const continueBtn    = document.getElementById('continueBtn');
+  const dharmaStatus   = document.getElementById('dharmaStatus');
+  const toastEl        = document.getElementById('toast');
+  const particlesLayer = document.getElementById('particles');
+
+  let toastTimer = null;
+
+  /* ============================================================
+     BACKGROUND PARTICLES
+  ============================================================ */
+  function spawnParticle(){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 2 + Math.random() * 3;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + 'vw';
+    const duration = 7 + Math.random() * 7;
+    p.style.animationDuration = duration + 's';
+    p.style.opacity = (0.25 + Math.random() * 0.4).toFixed(2);
+    particlesLayer.appendChild(p);
+    setTimeout(() => p.remove(), duration * 1000 + 200);
+  }
+  for (let i = 0; i < 10; i++) setTimeout(spawnParticle, i * 220);
+  setInterval(spawnParticle, 550);
+
+  /* ============================================================
+     SMALL HELPERS
+  ============================================================ */
+  function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+  function scrollToBottom(){
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function showToast(html){
+    toastEl.innerHTML = html;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2600);
+  }
+
+  /* ============================================================
+     MESSAGE / SYSTEM LINE BUILDERS
+  ============================================================ */
+  function addMessage(text, className){
+    const div = document.createElement('div');
+    div.className = 'msg ' + className;
+    div.textContent = text;
+    chatBody.appendChild(div);
+    requestAnimationFrame(() => div.classList.add('in'));
+    scrollToBottom();
+    return div;
+  }
+
+  async function sendSystemLine(text, extraClass, pause){
+    const el = addMessage(text, 'system' + (extraClass ? ' ' + extraClass : ''));
+    scrollToBottom();
+    await wait(pause !== undefined ? pause : 550);
+    return el;
+  }
+
+  async function showScanner(duration){
+    const el = document.createElement('div');
+    el.className = 'scanner';
+    chatBody.appendChild(el);
+    requestAnimationFrame(() => el.classList.add('in'));
+    scrollToBottom();
+    await wait(duration);
+    el.remove();
+  }
+
+  async function showTypingIndicator(duration){
+    const bubble = document.createElement('div');
+    bubble.className = 'typing-bubble';
+    bubble.innerHTML = '<span></span><span></span><span></span>';
+    chatBody.appendChild(bubble);
+    requestAnimationFrame(() => bubble.classList.add('in'));
+    scrollToBottom();
+    await wait(duration);
+    bubble.remove();
+  }
+
+  // A normal "typed elsewhere, then sent" dharma bubble (typing dots -> full text)
+  async function sendDharmaMessage(text, typingDuration){
+    await showTypingIndicator(typingDuration || 1100);
+    const bubble = addMessage(text, 'dharma');
+    await wait(400);
+    return bubble;
+  }
+
+  // The attempt #3 paragraph that visibly builds character-by-character, then gets abandoned
+  async function sendPartialThenDelete(fullText, cutoff){
+    await showTypingIndicator(1300);
+    const bubble = addMessage('', 'dharma');
+    const partial = fullText.slice(0, cutoff);
+    for (let i = 0; i <= partial.length; i++){
+      bubble.textContent = partial.slice(0, i);
+      scrollToBottom();
+      await wait(30);
+    }
+    await wait(700);
+    await sendSystemLine('Overthinking.exe activated', 'warn', 700);
+    bubble.classList.add('deleting');
+    await wait(450);
+    bubble.textContent = 'Message deleted 😭';
+    bubble.classList.remove('deleting');
+    bubble.classList.add('deleted');
+    await wait(500);
+    return bubble;
+  }
+
+  /* ============================================================
+     EXTRA FEATURE — clicking the very first "Hey" bubble
+  ============================================================ */
+  function makeHeyClickable(bubble){
+    bubble.classList.add('clickable');
+    bubble.addEventListener('click', () => {
+      showToast('Most difficult 3 letters apparently 💀');
+    });
+  }
+
+  /* ============================================================
+     EXTRA FEATURE — clicking "Dharma.exe online"
+  ============================================================ */
+  dharmaStatus.addEventListener('click', () => {
+    showToast('System running on caffeine and courage');
+  });
+
+  /* ============================================================
+     EXTRA FEATURE — idle detection ("waited too long")
+  ============================================================ */
+  let idleTimer = null;
+  let idleArmed = false;
+  function armIdleWatch(){
+    idleArmed = true;
+    resetIdleTimer();
+  }
+  function resetIdleTimer(){
+    if (!idleArmed) return;
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      showToast('Overthinking increasing...');
+      resetIdleTimer();
+    }, 11000);
+  }
+  ['click', 'touchstart', 'keydown', 'scroll'].forEach(evt => {
+    window.addEventListener(evt, resetIdleTimer, { passive: true });
+  });
+
+  /* ============================================================
+     INTERACTIVE CHOICE — "What should Dharma send?"
+  ============================================================ */
+  function waitForChoice(){
+    return new Promise(resolve => {
+      choiceCard.classList.add('show');
+      scrollToBottom();
+      const buttons = choiceCard.querySelectorAll('button');
+      function handler(e){
+        const choice = e.currentTarget.getAttribute('data-choice');
+        buttons.forEach(b => b.removeEventListener('click', handler));
+        choiceCard.classList.remove('show');
+
+        let response;
+        if (choice === 'hey') response = 'Classic move. Also terrifyingly dry 💀';
+        else if (choice === 'joke') response = 'Risk level: Dharma humour detected 😭';
+        else response = 'Website path unlocked ⚡';
+
+        resolve(response);
+      }
+      buttons.forEach(b => b.addEventListener('click', handler));
+    });
+  }
+
+  /* ============================================================
+     MAIN SEQUENCE
+  ============================================================ */
+  async function runChat(){
+    // ---- Boot lines ----
+    await sendSystemLine('Opening message_attempt.exe...', 'label', 900);
+    await sendSystemLine('Attempt #1', 'label', 700);
+
+    // ---- Attempt #1 ----
+    const heyBubble = await sendDharmaMessage('Hey');
+    makeHeyClickable(heyBubble);
+    await sendSystemLine('Message analysis running...');
+    await showScanner(1000);
+    await sendSystemLine('Rejected ❌', 'fail-tag', 500);
+    await sendSystemLine('Reason: Too dry detected 😭', 'reason', 900);
+
+    // ---- Attempt #2 ----
+    await sendSystemLine('Attempt #2', 'label', 700);
+    await sendDharmaMessage('Hey, how are you?');
+    await sendSystemLine('Better...', '', 450);
+    await sendSystemLine('But still feels like a random NPC dialogue 💀', '', 600);
+    await sendSystemLine('Rejected ❌', 'fail-tag', 900);
+
+    // ---- Attempt #3 ----
+    await sendSystemLine('Attempt #3', 'label', 700);
+    await sendPartialThenDelete('Hey Kirti, actually I wanted to say...', 24);
+
+    // ---- Interactive choice moment ----
+    await sendSystemLine('New input required.', '', 300);
+    armIdleWatch();
+    const choiceResponse = await waitForChoice();
+    await sendSystemLine(choiceResponse, 'choice-response', 700);
+
+    // ---- Final attempt ----
+    await sendSystemLine('Searching alternatives...', '', 300);
+    await showScanner(1300);
+    await sendSystemLine('Solution found:', '', 400);
+    await sendSystemLine('Create an entire website instead', 'solution-tag', 800);
+    await sendDharmaMessage('Seems unnecessary...', 1000);
+    await sendSystemLine('Exactly. Continue.', '', 600);
+    await sendSystemLine('Approved ✔', 'success-tag', 700);
+
+    // ---- Report + continue ----
+    await wait(300);
+    reportCard.classList.add('show');
+    scrollToBottom();
+    await wait(500);
+    continueBtn.classList.add('show');
+  }
+
+  continueBtn.addEventListener('click', () => {
+    window.location.href = 'expectation.html';
+  });
+
+  // Kick off the simulation once the page has loaded
+  runChat();
+
+})();
+</script>
+</body>
+</html>

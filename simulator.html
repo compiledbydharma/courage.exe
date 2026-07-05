@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Overthinking Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#070B14;
+    --accent:#38BDF8;
+    --warning:#FACC15;
+    --error:#EF4444;
+    --success:#22C55E;
+    --text:#F8FAFC;
+    --text-secondary:#94A3B8;
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  html, body{
+    height:100%;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    overflow-x:hidden;
+  }
+
+  body{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+    padding:24px 0;
+  }
+
+  body.page-fade{ animation:pageFade 0.6s ease; }
+  @keyframes pageFade{ from{ opacity:0; } to{ opacity:1; } }
+
+  /* ---------------- BACKGROUND ---------------- */
+
+  .bg-gradient{
+    position:fixed;
+    inset:-10%;
+    width:120%;
+    height:120%;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(56,189,248,0.14), transparent 45%),
+      radial-gradient(circle at 80% 75%, rgba(56,189,248,0.10), transparent 50%),
+      radial-gradient(circle at 50% 50%, rgba(127,92,255,0.06), transparent 60%),
+      var(--bg);
+    background-size:220% 220%, 220% 220%, 200% 200%, auto;
+    z-index:0;
+    animation:gradientPan 25s ease-in-out infinite alternate;
+  }
+
+  @keyframes gradientPan{
+    0%{ background-position: 0% 0%, 100% 100%, 40% 60%, 0 0; }
+    50%{ background-position: 30% 40%, 70% 60%, 55% 45%, 0 0; }
+    100%{ background-position: 12% 25%, 88% 80%, 50% 50%, 0 0; }
+  }
+
+  .glow-circle{
+    position:fixed;
+    border-radius:50%;
+    background:var(--accent);
+    filter:blur(85px);
+    z-index:0;
+    pointer-events:none;
+    will-change:transform, opacity;
+  }
+  .glow-circle.one{ width:250px; height:250px; top:-60px; left:-60px; animation:driftOne 19s ease-in-out infinite; }
+  .glow-circle.two{ width:300px; height:300px; bottom:-100px; right:-80px; animation:driftTwo 23s ease-in-out infinite; }
+  .glow-circle.three{ width:180px; height:180px; top:50%; left:62%; background:#7f5cff; animation:driftThree 27s ease-in-out infinite; }
+
+  @keyframes driftOne{
+    0%{ transform:translate(0,0) scale(1); opacity:0.13; }
+    50%{ transform:translate(42px,58px) scale(1.15); opacity:0.21; }
+    100%{ transform:translate(0,0) scale(1); opacity:0.13; }
+  }
+  @keyframes driftTwo{
+    0%{ transform:translate(0,0) scale(1); opacity:0.12; }
+    50%{ transform:translate(-46px,-42px) scale(1.13); opacity:0.20; }
+    100%{ transform:translate(0,0) scale(1); opacity:0.12; }
+  }
+  @keyframes driftThree{
+    0%{ transform:translate(0,0) scale(0.9); opacity:0.08; }
+    50%{ transform:translate(-32px,32px) scale(1.06); opacity:0.15; }
+    100%{ transform:translate(0,0) scale(0.9); opacity:0.08; }
+  }
+
+  #particles{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+  .particle{
+    position:absolute;
+    background:var(--accent);
+    border-radius:50%;
+    box-shadow:0 0 5px 1px rgba(56,189,248,0.5);
+    animation-name:floatUp;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+  }
+
+  @keyframes floatUp{
+    0%{ transform:translate(0,0) scale(0.6); opacity:0; }
+    12%{ opacity:var(--maxOpacity, 0.5); }
+    50%{ transform:translate(var(--sway, 20px), -55vh) scale(1); }
+    88%{ opacity:var(--maxOpacity, 0.5); }
+    100%{ transform:translate(calc(var(--sway, 20px) * 1.7), -115vh) scale(0.6); opacity:0; }
+  }
+
+  #codeSymbols{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+
+  .code-symbol{
+    position:absolute;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--accent);
+    opacity:0;
+    animation-name:symbolFade;
+    animation-timing-function:ease-in-out;
+    animation-iteration-count:infinite;
+  }
+
+  @keyframes symbolFade{
+    0%{ opacity:0; transform:translateY(0); }
+    50%{ opacity:var(--symOpacity, 0.18); transform:translateY(-10px); }
+    100%{ opacity:0; transform:translateY(-20px); }
+  }
+
+  /* ---------------- CARD ---------------- */
+
+  .card{
+    position:relative;
+    z-index:1;
+    width:90%;
+    max-width:430px;
+    background:rgba(255,255,255,0.07);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border-radius:25px;
+    border:1px solid rgba(56,189,248,0.35);
+    box-shadow:0 8px 40px rgba(0,0,0,0.45), 0 0 40px rgba(56,189,248,0.08);
+    padding:28px 22px;
+    opacity:0;
+    transform:translateY(30px);
+    animation:cardIn 0.8s ease forwards 0.15s;
+    max-height:85vh;
+    overflow-y:auto;
+  }
+
+  @keyframes cardIn{ to{ opacity:1; transform:translateY(0); } }
+  .card::-webkit-scrollbar{ width:4px; }
+  .card::-webkit-scrollbar-thumb{ background:rgba(56,189,248,0.3); border-radius:4px; }
+
+  /* ---------------- INTRO SCAN ---------------- */
+
+  .scan-screen{
+    min-height:170px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:14px;
+  }
+
+  .scan-screen.exit{ animation:scanExit 0.5s ease forwards; }
+  @keyframes scanExit{ to{ opacity:0; transform:scale(0.92); } }
+
+  .scan-line{
+    font-size:16px;
+    font-weight:500;
+    opacity:0;
+    animation:lineFade 0.4s ease forwards;
+  }
+  @keyframes lineFade{ to{ opacity:1; } }
+
+  .scan-dots span{
+    display:inline-block;
+    width:6px; height:6px;
+    margin:0 3px;
+    border-radius:50%;
+    background:var(--accent);
+    animation:dotPulse 1.2s ease-in-out infinite;
+  }
+  .scan-dots span:nth-child(2){ animation-delay:0.15s; }
+  .scan-dots span:nth-child(3){ animation-delay:0.3s; }
+  @keyframes dotPulse{
+    0%,100%{ opacity:0.25; transform:translateY(0); }
+    50%{ opacity:1; transform:translateY(-4px); }
+  }
+
+  /* ---------------- MAIN SIMULATOR ---------------- */
+
+  .simulator{ display:none; }
+  .simulator.enter{ display:block; animation:simIn 0.6s ease forwards; }
+  @keyframes simIn{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
+
+  .section-title{
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:0.6px;
+    text-transform:uppercase;
+    color:var(--text-secondary);
+    margin-bottom:10px;
+  }
+
+  .section{ margin-top:22px; }
+  .section:first-child{ margin-top:0; }
+
+  /* process rows */
+  .process-row{ margin-bottom:13px; cursor:default; }
+  .process-row.clickable{ cursor:pointer; }
+
+  .process-labels{
+    display:flex; justify-content:space-between;
+    font-size:12.5px; margin-bottom:5px;
+  }
+  .process-name{ font-family:'JetBrains Mono', monospace; color:var(--text); }
+  .process-value{ font-family:'JetBrains Mono', monospace; color:var(--accent); }
+  .process-value.overflow{ color:var(--warning); }
+  .process-value.error{ color:var(--error); }
+
+  .process-track{
+    width:100%; height:9px; border-radius:999px;
+    background:rgba(255,255,255,0.07); overflow:hidden;
+  }
+
+  .process-fill{
+    height:100%; width:0%; border-radius:999px;
+    background:linear-gradient(90deg, #38BDF8, #7f5cff);
+    transition:width 1.1s cubic-bezier(.2,.8,.3,1);
+  }
+  .process-fill.overflow{
+    background:linear-gradient(90deg, var(--warning), #ff9d3f, var(--warning));
+    background-size:200% auto;
+    animation:overflowShimmer 1.4s linear infinite;
+    box-shadow:0 0 12px rgba(250,204,21,0.6);
+  }
+  @keyframes overflowShimmer{ to{ background-position:200% center; } }
+
+  .process-fill.error-fill{
+    background:var(--error);
+    animation:glitchBar 1.6s steps(6) infinite;
+    opacity:0.7;
+  }
+  @keyframes glitchBar{
+    0%,100%{ width:8%; }
+    20%{ width:22%; }
+    40%{ width:4%; }
+    60%{ width:30%; }
+    80%{ width:12%; }
+  }
+
+  .process-name.glitch{
+    animation:textGlitch 2.4s infinite;
+  }
+  @keyframes textGlitch{
+    0%,94%,100%{ text-shadow:none; transform:translate(0,0); }
+    95%{ text-shadow:2px 0 var(--error), -2px 0 var(--accent); transform:translate(1px,0); }
+    97%{ text-shadow:-2px 0 var(--error), 2px 0 var(--accent); transform:translate(-1px,0); }
+  }
+
+  .secret-line{
+    margin-top:6px;
+    font-size:11.5px;
+    font-family:'JetBrains Mono', monospace;
+    color:var(--text-secondary);
+    display:none;
+  }
+  .secret-line.show{ display:block; animation:rowIn 0.4s ease forwards; }
+  @keyframes rowIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+
+  /* chaos meter */
+  .chaos-box{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:14px;
+    padding:13px 15px;
+  }
+  .chaos-label{ font-size:12.5px; color:var(--text-secondary); }
+  .chaos-value{
+    font-family:'JetBrains Mono', monospace;
+    font-weight:700;
+    font-size:13.5px;
+    color:var(--error);
+    transition:color 0.4s ease;
+  }
+  .chaos-value.ready{ color:var(--success); }
+
+  /* clear overthinking */
+  .clear-btn{
+    width:100%;
+    margin-top:8px;
+    padding:13px;
+    border:1px solid rgba(56,189,248,0.4);
+    border-radius:14px;
+    background:rgba(56,189,248,0.08);
+    color:var(--accent);
+    font-family:'Poppins', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    cursor:pointer;
+    transition:transform 0.15s ease, background 0.2s ease;
+  }
+  .clear-btn:active{ transform:scale(0.97); }
+  .clear-btn:disabled{ opacity:0.5; cursor:default; }
+
+  .clear-status{
+    margin-top:10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--text-secondary);
+    text-align:center;
+    min-height:16px;
+  }
+
+  .clear-track{
+    width:100%; height:8px; border-radius:999px;
+    background:rgba(255,255,255,0.07); overflow:hidden;
+    margin-top:8px;
+  }
+  .clear-fill{
+    height:100%; width:0%; border-radius:999px;
+    background:linear-gradient(90deg, #38BDF8, #22C55E);
+    transition:width 0.9s cubic-bezier(.2,.8,.3,1);
+  }
+
+  /* random thought generator */
+  .thought-btn{
+    width:100%;
+    margin-top:8px;
+    padding:13px;
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:14px;
+    background:rgba(255,255,255,0.04);
+    color:var(--text);
+    font-family:'Poppins', sans-serif;
+    font-weight:500;
+    font-size:13.5px;
+    cursor:pointer;
+  }
+  .thought-btn:active{ transform:scale(0.97); }
+
+  .thought-output{
+    margin-top:10px;
+    min-height:16px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:var(--text-secondary);
+    text-align:center;
+  }
+  .thought-output.show{ animation:rowIn 0.35s ease forwards; }
+
+  /* transformation */
+  .transformation{ display:none; }
+  .transformation.show{ display:block; animation:rowIn 0.5s ease forwards; }
+
+  .decision-line{
+    margin-top:12px;
+    text-align:center;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13.5px;
+    color:var(--success);
+    font-weight:600;
+    opacity:0;
+  }
+  .decision-line.reveal{ animation:rowIn 0.4s ease forwards; }
+
+  /* continue button */
+  .continue-btn{
+    display:none;
+    width:100%;
+    margin-top:22px;
+    padding:16px;
+    border:none;
+    border-radius:999px;
+    background:linear-gradient(135deg, #38BDF8, #7DD3FC);
+    color:#04141F;
+    font-family:'Poppins', sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    cursor:pointer;
+    box-shadow:0 0 25px rgba(56,189,248,0.4);
+  }
+  .continue-btn.show{ display:block; animation:btnUnlock 0.6s ease; }
+  @keyframes btnUnlock{
+    0%{ transform:scale(0.85); opacity:0; }
+    60%{ transform:scale(1.04); opacity:1; }
+    100%{ transform:scale(1); }
+  }
+  .continue-btn:active{ transform:scale(0.97); }
+
+  /* floating thought bubbles */
+  #bubbleLayer{
+    position:fixed;
+    inset:0;
+    z-index:2;
+    pointer-events:none;
+    overflow:hidden;
+  }
+
+  .thought-bubble{
+    position:absolute;
+    max-width:200px;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(8px);
+    border:1px solid rgba(56,189,248,0.3);
+    border-radius:14px;
+    padding:8px 12px;
+    font-size:12px;
+    color:var(--text);
+    animation:bubbleFloat 3.2s ease forwards;
+  }
+
+  @keyframes bubbleFloat{
+    0%{ opacity:0; transform:translateY(10px) scale(0.9); }
+    15%{ opacity:1; transform:translateY(0) scale(1); }
+    80%{ opacity:1; }
+    100%{ opacity:0; transform:translateY(-40px) scale(0.95); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  }
+</style>
+</head>
+<body class="page-fade">
+
+<div class="bg-gradient"></div>
+<div class="glow-circle one"></div>
+<div class="glow-circle two"></div>
+<div class="glow-circle three"></div>
+<div id="particles"></div>
+<div id="codeSymbols"></div>
+<div id="bubbleLayer"></div>
+
+<div class="card" id="mainCard">
+
+  <!-- SYSTEM SCAN INTRO -->
+  <div class="scan-screen" id="scanScreen">
+    <div class="scan-line" id="scanLine">Opening Dharma's brain.exe 🧠</div>
+    <div class="scan-dots"><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- MAIN SIMULATOR -->
+  <div class="simulator" id="simulator">
+
+    <div class="section">
+      <div class="section-title">Currently running processes:</div>
+
+      <div class="process-row">
+        <div class="process-labels"><span class="process-name">Confidence.exe</span><span class="process-value" data-target="80">0%</span></div>
+        <div class="process-track"><div class="process-fill" data-target="80"></div></div>
+      </div>
+
+      <div class="process-row">
+        <div class="process-labels"><span class="process-name">Humour.exe</span><span class="process-value" data-target="100">0%</span></div>
+        <div class="process-track"><div class="process-fill" data-target="100"></div></div>
+      </div>
+
+      <div class="process-row clickable" id="footballRow">
+        <div class="process-labels"><span class="process-name">Football.exe</span><span class="process-value" data-target="100">0%</span></div>
+        <div class="process-track"><div class="process-fill" data-target="100"></div></div>
+        <div class="secret-line" id="footballSecret">Neymar discussion system online 🇧🇷</div>
+      </div>
+
+      <div class="process-row clickable" id="overthinkingRow">
+        <div class="process-labels"><span class="process-name">Overthinking.exe</span><span class="process-value overflow" data-target="247">0%</span></div>
+        <div class="process-track"><div class="process-fill overflow" data-target="100"></div></div>
+        <div class="secret-line" id="overthinkingSecret">Achievement unlocked: Professional overthinker 💀</div>
+      </div>
+
+      <div class="process-row">
+        <div class="process-labels"><span class="process-name glitch">Normal conversation.exe</span><span class="process-value error">ERROR</span></div>
+        <div class="process-track"><div class="process-fill error-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="chaos-box">
+        <span class="chaos-label">Brain Status:</span>
+        <span class="chaos-value" id="chaosValue">CHAOS MODE 💀</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="clear-btn" id="clearBtn">Clear overthinking 🧹</button>
+      <div class="clear-status" id="clearStatus"></div>
+      <div class="clear-track"><div class="clear-fill" id="clearFill"></div></div>
+    </div>
+
+    <div class="section">
+      <button class="thought-btn" id="thoughtBtn">Generate random thought</button>
+      <div class="thought-output" id="thoughtOutput"></div>
+    </div>
+
+    <div class="section transformation" id="transformation">
+      <div class="section-title">Final Analysis</div>
+      <div class="process-row">
+        <div class="process-labels"><span class="process-name">Fear</span><span class="process-value" data-target="80">0%</span></div>
+        <div class="process-track"><div class="process-fill" data-target="80" style="background:linear-gradient(90deg, var(--error), var(--warning));"></div></div>
+      </div>
+      <div class="process-row">
+        <div class="process-labels"><span class="process-name">Courage</span><span class="process-value" data-target="100">0%</span></div>
+        <div class="process-track"><div class="process-fill" data-target="100"></div></div>
+      </div>
+      <div class="decision-line" id="decisionLine">Decision: Send it anyway ✔</div>
+    </div>
+
+    <button class="continue-btn" id="continueBtn">Collect some courage ⚡ →</button>
+
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   SIMULATOR.HTML — Page 8 of the experience
+   Inside Dharma's brain: a fake task manager simulation
+   ============================================================ */
+
+// ---------- Particle background ----------
+(function createParticles(){
+  const container = document.getElementById('particles');
+  const count = 28;
+  for(let i=0;i<count;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 2 + Math.random()*3;
+    const sway = (Math.random()*70 - 35).toFixed(0) + 'px';
+    const maxOpacity = (0.25 + Math.random()*0.3).toFixed(2);
+    const duration = 10 + Math.random()*15;
+    const delay = Math.random()*duration;
+
+    p.style.width = size+'px';
+    p.style.height = size+'px';
+    p.style.left = Math.random()*100+'vw';
+    p.style.bottom = (Math.random()*20 - 20)+'px';
+    p.style.setProperty('--sway', sway);
+    p.style.setProperty('--maxOpacity', maxOpacity);
+    p.style.animationDuration = duration+'s';
+    p.style.animationDelay = '-' + delay + 's';
+    container.appendChild(p);
+  }
+})();
+
+// ---------- Random fading code symbols ----------
+(function createCodeSymbols(){
+  const container = document.getElementById('codeSymbols');
+  const symbols = ['0101','.exe','ERROR','?','1010','.sys','404'];
+  const count = 16;
+  for(let i=0;i<count;i++){
+    const s = document.createElement('div');
+    s.className = 'code-symbol';
+    s.textContent = symbols[Math.floor(Math.random()*symbols.length)];
+    s.style.left = Math.random()*92+'vw';
+    s.style.top = Math.random()*90+'vh';
+    s.style.setProperty('--symOpacity', (0.10 + Math.random()*0.15).toFixed(2));
+    const duration = 6 + Math.random()*8;
+    s.style.animationDuration = duration+'s';
+    s.style.animationDelay = '-' + (Math.random()*duration)+'s';
+    container.appendChild(s);
+  }
+})();
+
+// ---------- System scan intro ----------
+const scanScreen = document.getElementById('scanScreen');
+const scanLine = document.getElementById('scanLine');
+const simulator = document.getElementById('simulator');
+
+const scanSteps = [
+  { text:"Opening Dharma's brain.exe 🧠", pause:1000 },
+  { text:"Scanning thoughts...", pause:900 },
+  { text:"Warning: Too many tabs open 💀", pause:1000 }
+];
+
+function runScan(i){
+  if(i >= scanSteps.length){ finishScan(); return; }
+  scanLine.style.animation = 'none';
+  void scanLine.offsetWidth;
+  scanLine.textContent = scanSteps[i].text;
+  scanLine.style.animation = 'lineFade 0.4s ease forwards';
+  setTimeout(()=> runScan(i+1), scanSteps[i].pause);
+}
+
+function finishScan(){
+  scanScreen.classList.add('exit');
+  setTimeout(()=>{
+    scanScreen.style.display = 'none';
+    simulator.classList.add('enter');
+    animateProcessBars();
+    startThoughtBubbles();
+  }, 500);
+}
+
+setTimeout(()=> runScan(0), 500);
+
+// ---------- Process bar animation ----------
+function animateProcessBars(){
+  document.querySelectorAll('.process-fill[data-target]').forEach((fill, idx)=>{
+    setTimeout(()=>{
+      const target = parseInt(fill.dataset.target);
+      fill.style.width = target + '%';
+    }, idx*160);
+  });
+
+  document.querySelectorAll('.process-value[data-target]').forEach((val, idx)=>{
+    const target = parseInt(val.dataset.target);
+    let current = 0;
+    const step = Math.max(1, Math.round(target/30));
+    setTimeout(()=>{
+      const counter = setInterval(()=>{
+        current += step;
+        if(current >= target){ current = target; clearInterval(counter); }
+        val.textContent = current + '%' + (val.classList.contains('overflow') && current===target ? ' 💀' : '');
+      }, 20);
+    }, idx*160);
+  });
+}
+
+// ---------- Thought bubbles ----------
+const bubbleLayer = document.getElementById('bubbleLayer');
+const thoughts = [
+  "Should I message?",
+  "What if it's awkward?",
+  "Maybe tomorrow...",
+  "Actually maybe next week 💀",
+  "Bro just say hi",
+  "Creating website sounds easier somehow 😭"
+];
+
+let bubbleTimer = null;
+let bubbleInterval = 2600;
+
+function spawnBubble(){
+  const el = document.createElement('div');
+  el.className = 'thought-bubble';
+  el.textContent = thoughts[Math.floor(Math.random()*thoughts.length)];
+  el.style.left = (10 + Math.random()*60) + 'vw';
+  el.style.top = (15 + Math.random()*55) + 'vh';
+  bubbleLayer.appendChild(el);
+  setTimeout(()=> el.remove(), 3300);
+}
+
+function startThoughtBubbles(){
+  spawnBubble();
+  bubbleTimer = setInterval(()=>{
+    spawnBubble();
+    if(Math.random() > 0.5) spawnBubble();
+  }, bubbleInterval);
+}
+
+function clearVisibleBubbles(){
+  bubbleLayer.querySelectorAll('.thought-bubble').forEach(b=>{
+    b.style.transition = 'opacity 0.3s ease';
+    b.style.opacity = '0';
+    setTimeout(()=> b.remove(), 300);
+  });
+}
+
+function slowBubbles(){
+  bubbleInterval += 1200;
+  clearInterval(bubbleTimer);
+  bubbleTimer = setInterval(()=>{
+    spawnBubble();
+  }, bubbleInterval);
+}
+
+function stopBubbles(){
+  clearInterval(bubbleTimer);
+}
+
+// ---------- Clear overthinking button ----------
+const clearBtn = document.getElementById('clearBtn');
+const clearStatus = document.getElementById('clearStatus');
+const clearFill = document.getElementById('clearFill');
+const chaosValue = document.getElementById('chaosValue');
+const transformation = document.getElementById('transformation');
+const decisionLine = document.getElementById('decisionLine');
+const continueBtn = document.getElementById('continueBtn');
+
+let clearClicks = 0;
+
+clearBtn.addEventListener('click', ()=>{
+  clearClicks++;
+  clearVisibleBubbles();
+  clearBtn.disabled = true;
+
+  if(clearClicks === 1){
+    clearStatus.textContent = 'Deleting unnecessary thoughts...';
+    setTimeout(()=>{
+      clearFill.style.width = '20%';
+      clearStatus.textContent = '20% cleared';
+      slowBubbles();
+      clearBtn.disabled = false;
+    }, 700);
+
+  } else if(clearClicks === 2){
+    clearStatus.textContent = 'Deleting unnecessary thoughts...';
+    setTimeout(()=>{
+      clearFill.style.width = '50%';
+      clearStatus.textContent = '50% cleared';
+      slowBubbles();
+      clearBtn.disabled = false;
+    }, 700);
+
+  } else if(clearClicks === 3){
+    clearStatus.textContent = 'Deleting unnecessary thoughts...';
+    setTimeout(()=>{
+      clearFill.style.width = '85%';
+      clearStatus.textContent = '85% cleared';
+      slowBubbles();
+      clearBtn.disabled = false;
+    }, 700);
+
+  } else if(clearClicks === 4){
+    clearStatus.textContent = 'Unable to delete completely.';
+    setTimeout(()=>{
+      clearStatus.textContent = 'Some overthinking is permanent 😭';
+      setTimeout(()=>{
+        clearFill.style.width = '92%';
+        clearStatus.textContent = 'Enough cleared to continue ✔';
+        stopBubbles();
+        clearBtn.textContent = 'Cleared ✔';
+        clearBtn.disabled = true;
+
+        chaosValue.textContent = 'READY (kind of) 😂';
+        chaosValue.classList.add('ready');
+
+        transformation.classList.add('show');
+        setTimeout(()=>{
+          transformation.querySelectorAll('.process-fill[data-target]').forEach(fill=>{
+            fill.style.width = fill.dataset.target + '%';
+          });
+          transformation.querySelectorAll('.process-value[data-target]').forEach(val=>{
+            const target = parseInt(val.dataset.target);
+            let current = 0;
+            const step = Math.max(1, Math.round(target/25));
+            const counter = setInterval(()=>{
+              current += step;
+              if(current >= target){ current = target; clearInterval(counter); }
+              val.textContent = current + '%';
+            }, 25);
+          });
+          setTimeout(()=> decisionLine.classList.add('reveal'), 900);
+          setTimeout(()=> continueBtn.classList.add('show'), 1300);
+        }, 200);
+
+      }, 1000);
+    }, 900);
+  }
+});
+
+// ---------- Generate random thought ----------
+const thoughtBtn = document.getElementById('thoughtBtn');
+const thoughtOutput = document.getElementById('thoughtOutput');
+const randomThoughts = [
+  "Confidence found... then lost again",
+  "Social skills buffering...",
+  "Neymar discussion would be easier ⚽",
+  "Mission difficulty increased"
+];
+let lastThought = -1;
+
+thoughtBtn.addEventListener('click', ()=>{
+  thoughtOutput.classList.remove('show');
+  let next = Math.floor(Math.random()*randomThoughts.length);
+  if(next === lastThought) next = (next+1) % randomThoughts.length;
+  lastThought = next;
+  thoughtOutput.textContent = randomThoughts[next];
+  void thoughtOutput.offsetWidth;
+  thoughtOutput.classList.add('show');
+});
+
+// ---------- Continue ----------
+continueBtn.addEventListener('click', ()=>{
+  document.body.style.transition = 'opacity 0.5s ease';
+  document.body.style.opacity = '0';
+  setTimeout(()=>{ window.location.href = 'confidence.html'; }, 480);
+});
+
+// ---------- Easter egg: Overthinking.exe x5 ----------
+const overthinkingRow = document.getElementById('overthinkingRow');
+const overthinkingSecret = document.getElementById('overthinkingSecret');
+let overthinkClicks = 0;
+
+overthinkingRow.addEventListener('click', ()=>{
+  overthinkClicks++;
+  if(overthinkClicks === 5){
+    overthinkingSecret.classList.add('show');
+  }
+});
+
+// ---------- Easter egg: Football.exe ----------
+const footballRow = document.getElementById('footballRow');
+const footballSecret = document.getElementById('footballSecret');
+
+footballRow.addEventListener('click', ()=>{
+  footballSecret.classList.remove('show');
+  void footballSecret.offsetWidth;
+  footballSecret.classList.add('show');
+});
+</script>
+
+</body>
+</html>
